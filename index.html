@@ -1,0 +1,3273 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#00d4ff">
+<title>Workshop Access Control</title>
+<link rel="manifest" href="./manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+<style>
+  :root[data-theme="dark"] {
+    --bg:#0d1117;--surface:#161b22;--surface2:#1c2230;
+    --border:#222a36;--border2:#2f3947;--text:#e6edf3;--text2:#a8b0bf;--muted:#7a8497;
+    --accent:#5e7afd;--accent2:#4b66e0;--accent-soft:rgba(94,122,253,.12);
+    --green:#3fb950;--red:#f04e5b;--amber:#e3a740;--purple:#b88dff;
+    --overlay:rgba(8,11,18,.65);
+    --shadow:0 6px 20px rgba(0,0,0,.35);--shadow-sm:0 1px 3px rgba(0,0,0,.2);
+  }
+  :root[data-theme="light"] {
+    --bg:#f6f8fb;--surface:#ffffff;--surface2:#f1f4f9;
+    --border:#e5e9f0;--border2:#cdd5e0;--text:#0f172a;--text2:#475569;--muted:#64748b;
+    --accent:#4f6dfb;--accent2:#3b56e8;--accent-soft:rgba(79,109,251,.08);
+    --green:#159e54;--red:#dc2c40;--amber:#c47e10;--purple:#7c3aed;
+    --overlay:rgba(15,20,30,.35);
+    --shadow:0 6px 20px rgba(20,30,50,.08);--shadow-sm:0 1px 2px rgba(20,30,50,.06);
+  }
+  :root { --mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',-apple-system,system-ui,sans-serif; }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;font-size:14px;transition:background .2s,color .2s;-webkit-font-smoothing:antialiased}
+
+  header{border-bottom:1px solid var(--border);padding:0 28px;display:flex;align-items:center;justify-content:space-between;height:60px;position:sticky;top:0;background:var(--bg);z-index:100}
+  .logo{display:flex;align-items:center;gap:11px}
+  .logo-icon{width:32px;height:32px;border-radius:8px;background:var(--accent);display:flex;align-items:center;justify-content:center;color:#fff}
+  .logo-icon svg{width:18px;height:18px}
+  .logo-text{font-size:14px;font-weight:600;color:var(--text);letter-spacing:-.01em}
+  .logo-sub{font-size:12px;color:var(--muted);font-weight:400}
+  .header-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+  .status-pill{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--text2);padding:5px 10px;border-radius:6px;background:var(--surface2)}
+  .status-dot{width:7px;height:7px;border-radius:50%;background:var(--muted);transition:background .3s;flex-shrink:0}
+  .status-dot.connected{background:var(--green)}
+  .icon-btn{background:var(--surface);border:1px solid var(--border);color:var(--text2);font-family:var(--sans);font-size:12.5px;font-weight:500;padding:6px 11px;border-radius:6px;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:6px}
+  .icon-btn svg{width:14px;height:14px;flex-shrink:0}
+  .icon-btn:hover{border-color:var(--border2);background:var(--surface2);color:var(--text)}
+  .icon-btn.on{color:var(--green);border-color:var(--green)}
+  .icon-btn.danger{color:var(--red);border-color:var(--red)}
+  .icon-btn.danger:hover{background:rgba(240,78,91,.08)}
+  .icon-btn-user{color:var(--accent);border-color:var(--accent);background:var(--accent-soft)}
+  .icon-btn-user.unset{animation:pulse-attn 2.2s infinite}
+  @keyframes pulse-attn{0%,100%{box-shadow:0 0 0 0 var(--accent-soft)}50%{box-shadow:0 0 0 6px transparent}}
+
+  .dropdown{position:relative}
+  .dropdown-menu{position:absolute;top:calc(100% + 6px);right:0;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:5px;min-width:220px;display:none;z-index:200;box-shadow:var(--shadow)}
+  .dropdown-menu.open{display:block}
+  .dropdown-menu button{display:flex;width:100%;align-items:center;gap:10px;background:none;border:none;color:var(--text);font-family:var(--sans);font-size:13px;font-weight:500;padding:9px 11px;text-align:left;cursor:pointer;border-radius:5px;transition:background .15s}
+  .dropdown-menu button svg{width:14px;height:14px;color:var(--muted);flex-shrink:0}
+  .dropdown-menu button:hover{background:var(--surface2)}
+  .dropdown-menu button:hover svg{color:var(--text)}
+  .dropdown-menu .sep{height:1px;background:var(--border);margin:5px 0}
+  .dropdown-menu .danger{color:var(--red)}
+  .dropdown-menu .danger svg{color:var(--red)}
+
+  main{padding:28px;max-width:1400px;margin:0 auto}
+  .page-title{font-size:12.5px;color:var(--muted);margin-bottom:4px;font-weight:500}
+  .section-heading{font-size:22px;font-weight:600;color:var(--text);margin-bottom:24px;display:flex;align-items:baseline;gap:12px;letter-spacing:-.01em}
+  .section-heading-sub{font-size:13px;color:var(--muted);font-weight:400}
+
+  /* ---- EMERGENCY BANNER ---- */
+  .emergency-banner{background:linear-gradient(90deg,rgba(255,59,92,.15),rgba(255,59,92,.05));border-bottom:2px solid var(--red);padding:14px 32px;display:none;align-items:center;gap:16px;animation:flashBg 2s infinite}
+  .emergency-banner.on{display:flex}
+  @keyframes flashBg{0%,100%{background:linear-gradient(90deg,rgba(255,59,92,.18),rgba(255,59,92,.05))}50%{background:linear-gradient(90deg,rgba(255,59,92,.06),rgba(255,59,92,.02))}}
+  .emergency-icon{width:36px;height:36px;border:2px solid var(--red);border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--red);font-family:var(--mono);font-weight:700;font-size:20px;flex-shrink:0}
+  .emergency-text{flex:1}
+  .emergency-title{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--red);text-transform:uppercase;letter-spacing:.1em}
+  .emergency-sub{font-family:var(--mono);font-size:11px;color:var(--text2);margin-top:2px}
+
+  /* ---- PENDING QUEUE ---- */
+  .pending-banner{background:rgba(227,167,64,.07);border:1px solid rgba(227,167,64,.35);border-radius:10px;padding:14px 18px;margin-bottom:20px;display:none}
+  .pending-banner.on{display:block}
+  .pending-head{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+  .pending-title{font-size:13px;font-weight:600;color:var(--amber);display:flex;align-items:center;gap:7px}
+  .pending-title svg{width:16px;height:16px}
+  .pending-list{display:flex;flex-direction:column;gap:8px}
+  .pending-row{display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:7px;flex-wrap:wrap}
+  .pending-uid{font-family:var(--mono);font-size:12.5px;color:var(--text);font-weight:600}
+  .pending-meta{flex:1;min-width:140px;font-size:12px;color:var(--text2)}
+  .pending-actions{display:flex;gap:6px}
+  .btn-register{background:var(--green);color:#fff;border:none;border-radius:6px;font-family:var(--sans);font-size:12px;font-weight:500;padding:6px 12px;cursor:pointer;transition:opacity .15s}
+  .btn-register:hover{opacity:.9}
+  .btn-dismiss{background:transparent;border:1px solid var(--border2);color:var(--text2);border-radius:6px;font-family:var(--sans);font-size:12px;font-weight:500;padding:6px 12px;cursor:pointer;transition:all .15s}
+  .btn-dismiss:hover{border-color:var(--red);color:var(--red);background:rgba(240,78,91,.06)}
+
+  /* ---- STAT BAR ---- */
+  .stat-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:28px}
+  .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px 20px;transition:border-color .15s,box-shadow .15s}
+  .stat-card:hover{border-color:var(--border2);box-shadow:var(--shadow-sm)}
+  .stat-label{font-size:12.5px;color:var(--muted);margin-bottom:10px;font-weight:500}
+  .stat-value{font-size:28px;font-weight:600;color:var(--text);line-height:1.1;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+  .stat-value.green{color:var(--green)}.stat-value.red{color:var(--red)}
+  .stat-sub{font-size:11.5px;color:var(--muted);margin-top:6px;font-weight:400}
+
+  /* ---- QUICK ADD ---- */
+  .quick-add{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin-bottom:18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .quick-add-label{font-size:13px;color:var(--text2);font-weight:500;margin-right:4px}
+  .machine-pick{display:flex;gap:6px;flex-wrap:wrap}
+  .machine-pick label{display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:500;color:var(--text2);padding:6px 12px;border:1px solid var(--border);border-radius:7px;cursor:pointer;transition:all .15s;background:var(--surface)}
+  .machine-pick label::before{content:'';width:13px;height:13px;border:1.5px solid var(--border2);border-radius:50%;transition:all .15s;flex-shrink:0}
+  .machine-pick label:has(input:checked){border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+  .machine-pick label:has(input:checked)::before{border-color:var(--accent);background:var(--accent);box-shadow:inset 0 0 0 3px var(--surface)}
+  .machine-pick label:hover{border-color:var(--border2)}
+  .machine-pick input{display:none}
+
+  /* ---- SEARCH ---- */
+  .search-row{display:flex;align-items:center;gap:12px;margin-bottom:18px;flex-wrap:wrap}
+  .search-wrap{position:relative;flex:1;min-width:240px;max-width:420px}
+  .search-input{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--sans);font-size:13.5px;padding:10px 14px 10px 36px;outline:none;transition:all .15s}
+  .search-input::placeholder{color:var(--muted)}
+  .search-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+  .search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);width:15px;height:15px;pointer-events:none}
+
+  /* ---- MACHINE GRID ---- */
+  .machines-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:18px;margin-bottom:32px}
+  .machine-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;display:flex;flex-direction:column;transition:border-color .15s,box-shadow .15s;position:relative}
+  .machine-card:hover{box-shadow:var(--shadow-sm)}
+  .machine-card.maintenance{border-color:var(--amber)}
+  .machine-card.maintenance::after{content:'Under maintenance';position:absolute;top:10px;right:10px;font-size:11px;color:var(--amber);background:rgba(227,167,64,.1);border:1px solid rgba(227,167,64,.4);padding:3px 9px;border-radius:5px;font-weight:500}
+  .machine-header{padding:14px 18px;border-bottom:1px solid var(--border);background:var(--surface);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+  .machine-header-left{display:flex;align-items:center;gap:8px;flex:1;min-width:0}
+  .machine-name{font-size:14.5px;font-weight:600;color:var(--text);cursor:text;padding:2px 4px;border-radius:4px;transition:background .15s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-.01em}
+  .machine-name:hover{background:var(--surface2)}
+  .machine-name-input{background:var(--bg);border:1px solid var(--accent);color:var(--text);font-family:var(--sans);font-size:14.5px;font-weight:600;padding:2px 6px;border-radius:4px;outline:none;width:100%}
+  .machine-flags{display:flex;gap:4px}
+  .flag-btn{background:transparent;border:1px solid var(--border);color:var(--muted);font-size:11.5px;padding:4px 8px;border-radius:5px;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:4px}
+  .flag-btn svg{width:13px;height:13px}
+  .flag-btn:hover{border-color:var(--border2);background:var(--surface2);color:var(--text)}
+  .flag-btn.on-amber{border-color:var(--amber);color:var(--amber);background:rgba(227,167,64,.08)}
+  .flag-btn.on-purple{border-color:var(--purple);color:var(--purple);background:rgba(184,141,255,.08)}
+  .machine-hb{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--text2)}
+  .hb-dot{width:7px;height:7px;border-radius:50%;background:var(--muted);flex-shrink:0}
+  .hb-dot.green{background:var(--green)}
+  .hb-dot.amber{background:var(--amber)}
+  .hb-dot.red{background:var(--red)}
+  .machine-count{font-size:12px;color:var(--muted);white-space:nowrap}
+  .machine-body{padding:8px 18px;flex:1;min-height:80px}
+
+  .uid-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);animation:fadeIn .2s ease}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(-3px)}to{opacity:1;transform:translateY(0)}}
+  .uid-row:last-child{border-bottom:none}
+
+  .avatar{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:10.5px;font-weight:600;flex-shrink:0;cursor:pointer;transition:transform .15s,box-shadow .15s}
+  .avatar:hover{transform:scale(1.06);box-shadow:var(--shadow-sm)}
+  .avatar.lg{width:52px;height:52px;font-size:15px}
+  .uid-info{flex:1;min-width:0}
+  .uid-person{font-size:13.5px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:text;padding:2px 4px;border-radius:4px;transition:background .15s}
+  .uid-person:hover{background:var(--surface2)}
+  .uid-person-input{background:var(--bg);border:1px solid var(--accent);color:var(--text);font-family:var(--sans);font-size:13.5px;padding:1px 4px;border-radius:4px;outline:none;width:100%}
+  .uid-hex{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:2px;padding-left:4px}
+  .uid-tag{display:inline-flex;align-items:center;font-size:10.5px;font-weight:500;color:var(--purple);background:rgba(184,141,255,.1);border:1px solid rgba(184,141,255,.28);padding:1px 7px;border-radius:10px;margin-left:6px}
+  .uid-tag.sup{color:var(--amber);background:rgba(227,167,64,.1);border-color:rgba(227,167,64,.35)}
+
+  .toggle-wrap{position:relative;width:34px;height:20px;flex-shrink:0}
+  .toggle-wrap input{opacity:0;width:0;height:0;position:absolute}
+  .toggle-track{position:absolute;inset:0;background:var(--border2);border-radius:10px;cursor:pointer;transition:background .2s}
+  .toggle-track::after{content:'';position:absolute;left:2px;top:2px;width:16px;height:16px;background:#fff;border-radius:50%;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+  .toggle-wrap input:checked+.toggle-track{background:var(--green)}
+  .toggle-wrap input:checked+.toggle-track::after{transform:translateX(14px)}
+
+  .btn-delete{background:transparent;border:1px solid transparent;color:var(--muted);cursor:pointer;width:26px;height:26px;display:flex;align-items:center;justify-content:center;border-radius:5px;transition:all .15s;flex-shrink:0}
+  .btn-delete svg{width:14px;height:14px}
+  .btn-delete:hover{color:var(--red);background:rgba(240,78,91,.08)}
+
+  .add-uid-form{display:flex;gap:8px;padding:14px 18px;border-top:1px solid var(--border);background:var(--surface2);flex-wrap:wrap}
+  .input-uid{flex:1;min-width:90px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:12.5px;padding:8px 11px;text-transform:uppercase;outline:none;transition:all .15s}
+  .input-uid::placeholder{color:var(--muted);text-transform:none}
+  .input-uid:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+  .input-name{flex:1.5;min-width:110px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--sans);font-size:13px;padding:8px 11px;outline:none;transition:all .15s}
+  .input-name::placeholder{color:var(--muted)}
+  .input-name:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+  .btn-add{background:var(--accent);color:#fff;border:none;border-radius:6px;font-family:var(--sans);font-size:12.5px;font-weight:500;padding:8px 14px;cursor:pointer;transition:background .15s;white-space:nowrap}
+  .btn-add:hover{background:var(--accent2)}
+  .empty-state{font-size:13px;color:var(--muted);text-align:center;padding:28px 0}
+
+  /* ---- TABS ---- */
+  .tabs-row{display:flex;border-bottom:1px solid var(--border);flex-wrap:wrap}
+  .tab-btn{background:none;border:none;border-bottom:2px solid transparent;color:var(--text2);font-family:var(--sans);font-size:13px;font-weight:500;padding:12px 18px;cursor:pointer;transition:all .15s;margin-bottom:-1px}
+  .tab-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
+  .tab-btn:hover:not(.active){color:var(--text)}
+  .tab-badge{display:inline-flex;align-items:center;justify-content:center;min-width:17px;height:17px;padding:0 5px;border-radius:9px;background:var(--amber);color:#fff;font-size:10.5px;font-weight:600;margin-left:5px;vertical-align:middle}
+
+  /* ---- BOTTOM SECTION ---- */
+  .bottom-section{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:clip;margin-bottom:40px}
+  .section-header{padding:12px 18px;border-bottom:1px solid var(--border);background:var(--surface);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;position:sticky;top:60px;z-index:50}
+  .filter-row{display:flex;gap:6px;flex-wrap:wrap}
+  .filter-btn{background:transparent;border:1px solid var(--border);color:var(--text2);font-family:var(--sans);font-size:12px;font-weight:500;padding:5px 11px;border-radius:6px;cursor:pointer;transition:all .15s}
+  .filter-btn:hover{border-color:var(--border2);color:var(--text)}
+  .filter-btn.active{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+  .filter-group{display:flex;align-items:center;gap:6px}
+  .filter-group-label{font-size:11.5px;color:var(--muted);font-weight:500;margin-right:2px}
+  .action-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+
+  .log-table{width:100%;border-collapse:collapse}
+  .log-table th{font-size:11.5px;color:var(--muted);text-align:left;padding:11px 20px;border-bottom:1px solid var(--border);font-weight:500;user-select:none;background:var(--surface2)}
+  .log-table th.sortable{cursor:pointer;transition:color .15s}
+  .log-table th.sortable:hover{color:var(--text)}
+  .log-table th .sort-arr{display:inline-block;margin-left:4px;opacity:.4;font-size:10px}
+  .log-table th.sort-active{color:var(--accent)}
+  .log-table th.sort-active .sort-arr{opacity:1}
+  .log-table td{padding:12px 20px;border-bottom:1px solid var(--border);font-size:13.5px;vertical-align:middle}
+  .log-table tr:last-child td{border-bottom:none}
+  .log-table tr:hover td{background:var(--surface2)}
+
+  .log-person-wrap{display:flex;align-items:center;gap:10px}
+  .log-person{font-size:13.5px;color:var(--text);font-weight:500}
+  .log-uid-sub{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:2px}
+  .log-machine{font-size:12.5px;color:var(--text);font-weight:500}
+  .log-time{font-family:var(--mono);font-size:11.5px;color:var(--text2)}
+  .log-time-rel{font-size:11px;color:var(--muted);margin-top:2px}
+
+  .badge{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:500;padding:3px 9px;border-radius:5px}
+  .badge::before{content:'';width:6px;height:6px;border-radius:50%;background:currentColor}
+  .badge-granted{background:rgba(63,185,80,.12);color:var(--green)}
+  .badge-denied{background:rgba(240,78,91,.12);color:var(--red)}
+  .section-empty{font-size:13px;color:var(--muted);text-align:center;padding:40px}
+
+  .btn-clear-logs{background:transparent;border:1px solid var(--border);color:var(--text2);font-family:var(--sans);font-size:12px;font-weight:500;padding:5px 12px;border-radius:6px;cursor:pointer;transition:all .15s;white-space:nowrap}
+  .btn-clear-logs:hover{border-color:var(--red);color:var(--red);background:rgba(240,78,91,.06)}
+  .btn-export{background:transparent;border:1px solid var(--border);color:var(--text2);font-family:var(--sans);font-size:12px;font-weight:500;padding:5px 12px;border-radius:6px;cursor:pointer;transition:all .15s;white-space:nowrap}
+  .btn-export:hover{border-color:var(--green);color:var(--green);background:rgba(63,185,80,.06)}
+
+  /* ---- CLEAR LOGS MODAL ---- */
+  .clear-modal-opts{display:flex;flex-direction:column;gap:8px;margin-bottom:20px}
+  .clear-opt{display:flex;align-items:center;gap:10px;padding:11px 14px;border:1px solid var(--border);border-radius:7px;cursor:pointer;transition:all .15s;background:var(--surface)}
+  .clear-opt:hover{border-color:var(--border2);background:var(--surface2)}
+  .clear-opt:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
+  .clear-opt input{accent-color:var(--accent);width:15px;height:15px;cursor:pointer}
+  .clear-opt-label{font-size:13px;color:var(--text);font-weight:500}
+  .clear-opt-sub{font-size:11.5px;color:var(--muted);margin-top:2px}
+
+  /* ---- USAGE CARDS ---- */
+  .usage-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;padding:18px 20px}
+  .usage-card{background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:16px 18px;transition:border-color .15s}
+  .usage-card:hover{border-color:var(--border2)}
+  .usage-card-top{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+  .usage-card-body{flex:1;min-width:0}
+  .usage-person{font-size:14px;font-weight:500;color:var(--text);margin-bottom:2px}
+  .usage-uid-sub{font-family:var(--mono);font-size:11px;color:var(--muted)}
+  .usage-stats{display:flex;gap:14px;margin-bottom:12px}
+  .usage-stat .num{font-size:21px;font-weight:600;display:block;line-height:1.2;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+  .usage-stat .lbl{color:var(--muted);font-size:11.5px;font-weight:500}
+  .usage-stat.g .num{color:var(--green)}
+  .usage-stat.r .num{color:var(--red)}
+  .usage-last{font-size:11.5px;color:var(--muted)}
+
+  /* ---- CHARTS ---- */
+  .charts-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;padding:18px 20px}
+  .chart-card{background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:18px 20px}
+  .chart-card.wide{grid-column:1/-1}
+  .chart-title{font-size:13px;color:var(--text);font-weight:600;margin-bottom:14px;letter-spacing:-.01em}
+  .chart-card canvas{max-height:260px}
+  @media(max-width:900px){.charts-grid{grid-template-columns:1fr}}
+
+  /* Heatmap */
+  .heatmap{display:flex;gap:3px;overflow-x:auto;padding:4px 0}
+  .heatmap-col{display:flex;flex-direction:column;gap:3px}
+  .heatmap-cell{width:14px;height:14px;border-radius:2px;background:var(--border)}
+  .heatmap-legend{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:10px}
+  .heatmap-legend-cells{display:flex;gap:3px}
+
+  /* Anomalies */
+  .anom-list{display:flex;flex-direction:column;gap:8px}
+  .anom-row{padding:10px 12px;background:var(--bg);border:1px solid var(--amber);border-left-width:3px;border-radius:4px;font-family:var(--mono);font-size:11px;color:var(--text)}
+  .anom-row strong{color:var(--amber)}
+  .anom-empty{font-family:var(--mono);font-size:11px;color:var(--muted);text-align:center;padding:14px}
+
+  /* ---- GROUPS ---- */
+  .groups-body{padding:20px}
+  .group-create-form{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;align-items:center}
+  .group-create-form input{flex:1;min-width:200px;background:var(--surface);border:1px solid var(--border);border-radius:7px;color:var(--text);font-family:var(--sans);font-size:13.5px;padding:9px 12px;outline:none;transition:all .15s}
+  .group-create-form input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+  .groups-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+  .group-card{background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:16px 18px;transition:border-color .15s}
+  .group-card:hover{border-color:var(--border2)}
+  .group-card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:8px}
+  .group-name{font-size:14.5px;color:var(--text);font-weight:600;cursor:text;padding:1px 4px;border-radius:4px;letter-spacing:-.01em}
+  .group-name:hover{background:var(--surface)}
+  .group-machines{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px}
+  .group-machine-pill{font-size:11.5px;font-weight:500;color:var(--accent);background:var(--accent-soft);border:1px solid transparent;padding:3px 9px;border-radius:6px;cursor:pointer;transition:all .15s}
+  .group-machine-pill.off{color:var(--muted);background:transparent;border-color:var(--border)}
+  .group-machine-pill:hover{opacity:.85}
+  .group-members{font-size:12px;color:var(--text2);margin-bottom:8px}
+  .group-members strong{color:var(--text);font-weight:600}
+  .group-add-form{display:flex;gap:6px;margin-top:10px}
+  .group-add-form input{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:11.5px;padding:6px 9px;outline:none;text-transform:uppercase;transition:all .15s}
+  .group-add-form input:focus{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+  .group-add-form button{background:var(--purple);color:#fff;border:none;border-radius:6px;font-family:var(--sans);font-size:12px;font-weight:500;padding:6px 11px;cursor:pointer;transition:opacity .15s}
+  .group-add-form button:hover{opacity:.9}
+  .group-members-list{margin-top:8px;display:flex;flex-wrap:wrap;gap:5px}
+  .group-member-pill{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:var(--text);background:var(--surface);border:1px solid var(--border);padding:3px 9px;border-radius:11px}
+  .group-member-pill .x{cursor:pointer;color:var(--muted);font-size:14px;line-height:1}
+  .group-member-pill .x:hover{color:var(--red)}
+  .group-delete{background:transparent;border:1px solid var(--border);color:var(--muted);font-family:var(--sans);font-size:12px;font-weight:500;padding:4px 10px;border-radius:5px;cursor:pointer;transition:all .15s}
+  .group-delete:hover{border-color:var(--red);color:var(--red);background:rgba(240,78,91,.06)}
+
+  .group-schedule-wrap{margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
+  .group-schedule-toggle{display:flex;width:100%;align-items:center;justify-content:space-between;gap:8px;background:transparent;border:1px solid var(--border);color:var(--text2);font-family:var(--sans);font-size:12.5px;padding:7px 11px;border-radius:6px;cursor:pointer;transition:all .15s}
+  .group-schedule-toggle:hover{border-color:var(--border2);background:var(--surface)}
+  .group-sched-active{font-family:var(--mono);font-size:11px;color:var(--accent);font-weight:500}
+  .group-sched-off{font-size:11.5px;color:var(--muted)}
+  .group-schedule-editor{margin-top:10px;padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:7px}
+  .gs-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+  .gs-row:last-child{margin-bottom:0}
+  .gs-enabled-label{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--text);font-weight:500;cursor:pointer}
+  .gs-enabled-label input{accent-color:var(--accent);width:15px;height:15px;cursor:pointer}
+  .gs-actions{justify-content:flex-end;gap:6px}
+
+  /* ---- AUDIT ---- */
+  .audit-filter{padding:10px 20px;border-bottom:1px solid var(--border);background:var(--surface2);display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .audit-empty{font-size:13px;color:var(--muted);text-align:center;padding:36px}
+
+  /* ---- MODAL ---- */
+  .modal-overlay{position:fixed;inset:0;background:var(--overlay);z-index:500;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s;padding:20px;backdrop-filter:blur(4px)}
+  .modal-overlay.open{opacity:1;pointer-events:all}
+  .modal{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:26px;width:100%;max-width:440px;max-height:90vh;overflow-y:auto;transform:scale(.96);transition:transform .2s;box-shadow:var(--shadow)}
+  .modal.wide{max-width:620px}
+  .modal-overlay.open .modal{transform:scale(1)}
+  .modal-title{font-size:17px;font-weight:600;color:var(--text);margin-bottom:8px;letter-spacing:-.01em}
+  .modal-title.danger{color:var(--red)}
+  .modal-title.amber{color:var(--amber)}
+  .modal-body{font-size:13.5px;color:var(--text2);line-height:1.55;margin-bottom:22px}
+  .modal-uid{font-family:var(--mono);color:var(--text);font-weight:500}
+  .modal-actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+  .btn-cancel{background:transparent;border:1px solid var(--border);color:var(--text2);font-family:var(--sans);font-size:13px;font-weight:500;padding:8px 16px;border-radius:7px;cursor:pointer;transition:all .15s}
+  .btn-cancel:hover{border-color:var(--border2);background:var(--surface2);color:var(--text)}
+  .btn-confirm-delete{background:var(--red);border:1px solid var(--red);color:#fff;font-family:var(--sans);font-size:13px;font-weight:500;padding:8px 16px;border-radius:7px;cursor:pointer;transition:opacity .15s}
+  .btn-confirm-delete:hover{opacity:.9}
+  .btn-confirm{background:var(--accent);color:#fff;border:none;border-radius:7px;font-family:var(--sans);font-size:13px;font-weight:500;padding:8px 16px;cursor:pointer;transition:background .15s}
+  .btn-confirm:hover{background:var(--accent2)}
+
+  /* User detail */
+  .ud-head{display:flex;align-items:center;gap:14px;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border)}
+  .ud-info{flex:1;min-width:0}
+  .ud-name{font-size:17px;font-weight:600;color:var(--text);margin-bottom:2px;letter-spacing:-.01em}
+  .ud-uid{font-family:var(--mono);font-size:12px;color:var(--muted)}
+  .ud-section{margin-bottom:20px}
+  .ud-section-title{font-size:12.5px;color:var(--muted);font-weight:500;margin-bottom:10px}
+  .ud-notes{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:7px;color:var(--text);font-family:var(--sans);font-size:13px;padding:9px 12px;outline:none;min-height:60px;resize:vertical;transition:all .15s}
+  .ud-notes:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+  .ud-induction-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)}
+  .ud-induction-row:last-child{border-bottom:none}
+  .ud-induction-label{font-size:12.5px;color:var(--text);font-weight:500;min-width:110px}
+  .ud-induction-row input[type=date]{background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:12px;padding:5px 8px;outline:none;color-scheme:dark}
+  :root[data-theme="light"] .ud-induction-row input[type=date]{color-scheme:light}
+  .ud-induction-row input[type=text]{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--sans);font-size:12.5px;padding:5px 9px;outline:none;transition:all .15s}
+  .ud-induction-row input:focus{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+  .ud-induction-row input[type=checkbox]{accent-color:var(--accent);width:15px;height:15px;cursor:pointer}
+  .ud-access-grid{display:flex;flex-wrap:wrap;gap:6px}
+  .ud-access-pill{font-size:11.5px;font-weight:500;padding:4px 10px;border-radius:6px;border:1px solid var(--border);color:var(--muted);background:var(--surface2)}
+  .ud-access-pill.on{color:var(--green);border-color:rgba(63,185,80,.4);background:rgba(63,185,80,.08)}
+  .ud-bottom-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;padding-top:6px;border-top:1px solid var(--border);margin-top:4px}
+
+  /* Schedule */
+  .sched-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);flex-wrap:wrap}
+  .sched-row:last-child{border-bottom:none}
+  .sched-days{display:flex;gap:4px}
+  .sched-days label{display:flex;align-items:center;justify-content:center;width:28px;height:28px;font-size:11.5px;font-weight:500;color:var(--text2);border:1px solid var(--border);border-radius:5px;cursor:pointer;transition:all .15s;background:var(--surface)}
+  .sched-days label:hover{border-color:var(--border2)}
+  .sched-days label:has(input:checked){border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+  .sched-days input{display:none}
+  .sched-time-input{background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:12px;padding:5px 8px;outline:none;color-scheme:dark;transition:all .15s}
+  .sched-time-input:focus{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+  :root[data-theme="light"] .sched-time-input{color-scheme:light}
+  .sched-time-pair{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;flex-shrink:0}
+  .sched-name{flex:1;min-width:130px;font-size:13px;color:var(--text);font-weight:500}
+  .sched-label-mini{font-size:11.5px;color:var(--muted);font-weight:500}
+
+  /* ---- DENY ALERT ---- */
+  .deny-alert{position:fixed;top:76px;left:50%;transform:translateX(-50%) translateY(-20px);background:var(--surface);border:1px solid var(--red);border-radius:9px;padding:13px 18px;display:flex;align-items:center;gap:12px;z-index:400;opacity:0;pointer-events:none;transition:all .25s;box-shadow:var(--shadow);min-width:320px}
+  .deny-alert.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .deny-icon{width:30px;height:30px;border-radius:50%;background:rgba(240,78,91,.12);color:var(--red);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .deny-icon svg{width:16px;height:16px}
+  .deny-text{display:flex;flex-direction:column;gap:1px}
+  .deny-title{font-size:12.5px;color:var(--red);font-weight:600}
+  .deny-detail{font-size:13px;color:var(--text)}
+
+  /* ---- TOAST ---- */
+  #toast{position:fixed;bottom:24px;right:24px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 16px;font-family:var(--sans);font-size:13px;color:var(--text);transform:translateY(60px);opacity:0;transition:all .25s;z-index:9999;max-width:340px;box-shadow:var(--shadow)}
+  #toast.show{transform:translateY(0);opacity:1}
+
+  /* ---- LOGIN ---- */
+  .login-overlay{position:fixed;inset:0;z-index:2000;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px}
+  .login-overlay.hidden{display:none}
+  .login-card{width:100%;max-width:380px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:34px 30px;box-shadow:var(--shadow)}
+  .login-logo{display:flex;align-items:center;gap:11px;margin-bottom:24px}
+  .login-logo-icon{width:38px;height:38px;border-radius:9px;background:var(--accent);display:flex;align-items:center;justify-content:center;color:#fff}
+  .login-logo-icon svg{width:21px;height:21px}
+  .login-logo-text{font-size:15px;font-weight:600;color:var(--text);letter-spacing:-.01em}
+  .login-logo-sub{font-size:12px;color:var(--muted)}
+  .login-title{font-size:19px;font-weight:600;color:var(--text);margin-bottom:6px;letter-spacing:-.01em}
+  .login-desc{font-size:13px;color:var(--text2);margin-bottom:22px;line-height:1.5}
+  .login-field{margin-bottom:14px}
+  .login-label{display:block;font-size:12.5px;color:var(--text2);font-weight:500;margin-bottom:6px}
+  .login-input{width:100%;background:var(--bg);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-family:var(--sans);font-size:14px;padding:11px 13px;outline:none;transition:all .15s}
+  .login-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+  .login-btn{width:100%;background:var(--accent);color:#fff;border:none;border-radius:8px;font-family:var(--sans);font-size:14px;font-weight:600;padding:12px;cursor:pointer;transition:background .15s;margin-top:6px}
+  .login-btn:hover{background:var(--accent2)}
+  .login-error{font-size:12.5px;color:var(--red);margin-top:12px;min-height:16px;text-align:center}
+  .login-foot{font-size:11.5px;color:var(--muted);text-align:center;margin-top:18px;line-height:1.5}
+
+  /* ---- STAFF MGMT ---- */
+  .staff-list{display:flex;flex-direction:column;gap:8px;margin-bottom:20px}
+  .staff-row{display:flex;align-items:center;gap:12px;padding:11px 14px;border:1px solid var(--border);border-radius:8px;background:var(--surface2)}
+  .staff-info{flex:1;min-width:0}
+  .staff-name{font-size:13.5px;color:var(--text);font-weight:500}
+  .staff-meta{font-size:11.5px;color:var(--muted);margin-top:2px;font-family:var(--mono)}
+  .staff-role{font-size:11px;font-weight:500;padding:2px 9px;border-radius:11px}
+  .staff-role.admin{color:var(--accent);background:var(--accent-soft)}
+  .staff-role.teacher{color:var(--text2);background:var(--surface)}
+  .staff-add-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+  .staff-add-grid input,.staff-add-grid select{background:var(--bg);border:1px solid var(--border2);border-radius:7px;color:var(--text);font-family:var(--sans);font-size:13px;padding:9px 11px;outline:none;transition:all .15s}
+  .staff-add-grid input:focus,.staff-add-grid select:focus{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+  .staff-add-grid .full{grid-column:1/-1}
+
+  /* ---- LOGIN TABS ---- */
+  .login-tabs{display:flex;gap:4px;background:var(--surface2);border-radius:9px;padding:4px;margin-bottom:20px}
+  .login-tab{flex:1;background:none;border:none;color:var(--text2);font-family:var(--sans);font-size:13px;font-weight:500;padding:9px;border-radius:6px;cursor:pointer;transition:all .15s}
+  .login-tab.active{background:var(--surface);color:var(--text);box-shadow:var(--shadow-sm)}
+
+  /* ---- STUDENT PORTAL ---- */
+  .student-portal{position:fixed;inset:0;z-index:1900;background:var(--bg);overflow-y:auto;display:none}
+  .student-portal.open{display:block}
+  .sp-header{border-bottom:1px solid var(--border);padding:0 28px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--bg);z-index:10}
+  .sp-body{max-width:680px;margin:0 auto;padding:28px}
+  .sp-greeting{font-size:24px;font-weight:600;letter-spacing:-.02em;margin-bottom:4px}
+  .sp-sub{font-size:13px;color:var(--muted);margin-bottom:24px}
+  .sp-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:18px}
+  .sp-card-title{font-size:15px;font-weight:600;margin-bottom:14px;display:flex;align-items:center;gap:9px}
+  .sp-status-row{display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:9px;margin-bottom:16px}
+  .sp-status-row.none{background:var(--surface2)}
+  .sp-status-row.pending{background:rgba(227,167,64,.1);border:1px solid rgba(227,167,64,.35)}
+  .sp-status-row.approved{background:rgba(63,185,80,.1);border:1px solid rgba(63,185,80,.35)}
+  .sp-status-row.denied{background:rgba(240,78,91,.1);border:1px solid rgba(240,78,91,.35)}
+  .sp-status-icon{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px}
+  .sp-status-icon.none{background:var(--border);color:var(--muted)}
+  .sp-status-icon.pending{background:rgba(227,167,64,.2);color:var(--amber)}
+  .sp-status-icon.approved{background:rgba(63,185,80,.2);color:var(--green)}
+  .sp-status-icon.denied{background:rgba(240,78,91,.2);color:var(--red)}
+  .sp-status-text{flex:1}
+  .sp-status-head{font-size:14px;font-weight:600}
+  .sp-status-detail{font-size:12px;color:var(--text2);margin-top:2px}
+  .sp-upload-zone{border:2px dashed var(--border2);border-radius:10px;padding:28px 20px;text-align:center;cursor:pointer;transition:all .15s;background:var(--surface2)}
+  .sp-upload-zone:hover{border-color:var(--accent);background:var(--accent-soft)}
+  .sp-upload-zone.has-preview{padding:14px}
+  .sp-upload-icon{font-size:30px;opacity:.5;margin-bottom:8px}
+  .sp-upload-text{font-size:13px;color:var(--text2)}
+  .sp-upload-hint{font-size:11.5px;color:var(--muted);margin-top:4px}
+  .sp-preview-img{max-width:100%;max-height:240px;border-radius:8px;border:1px solid var(--border)}
+  .sp-access-grid{display:flex;flex-wrap:wrap;gap:8px}
+  .sp-access-pill{font-size:12.5px;font-weight:500;padding:6px 12px;border-radius:7px;border:1px solid var(--border);color:var(--muted);background:var(--surface2);display:flex;align-items:center;gap:7px}
+  .sp-access-pill.on{color:var(--green);border-color:rgba(63,185,80,.4);background:rgba(63,185,80,.08)}
+  .sp-access-pill .dot{width:7px;height:7px;border-radius:50%;background:currentColor}
+  .sp-btn{background:var(--accent);color:#fff;border:none;border-radius:8px;font-family:var(--sans);font-size:14px;font-weight:500;padding:11px 18px;cursor:pointer;transition:background .15s;margin-top:14px}
+  .sp-btn:hover{background:var(--accent2)}
+  .sp-btn:disabled{opacity:.5;cursor:not-allowed}
+  .sp-btn.secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border2)}
+
+  /* ---- TRAINING (admin) ---- */
+  .training-body{padding:18px 20px}
+  .training-row{display:flex;align-items:center;gap:14px;padding:14px 16px;border:1px solid var(--border);border-radius:9px;background:var(--surface2);margin-bottom:10px;flex-wrap:wrap}
+  .training-info{flex:1;min-width:160px}
+  .training-name{font-size:14px;font-weight:500}
+  .training-meta{font-size:11.5px;color:var(--muted);margin-top:2px}
+  .training-badge{font-size:11.5px;font-weight:500;padding:3px 10px;border-radius:11px;display:inline-flex;align-items:center;gap:5px}
+  .training-badge.pending{color:var(--amber);background:rgba(227,167,64,.12)}
+  .training-badge.approved{color:var(--green);background:rgba(63,185,80,.12)}
+  .training-badge.denied{color:var(--red);background:rgba(240,78,91,.12)}
+  .training-actions{display:flex;gap:6px;flex-wrap:wrap}
+  .t-btn{border:none;border-radius:6px;font-family:var(--sans);font-size:12px;font-weight:500;padding:6px 12px;cursor:pointer;transition:opacity .15s}
+  .t-btn:hover{opacity:.9}
+  .t-btn.view{background:var(--surface);border:1px solid var(--border2);color:var(--text)}
+  .t-btn.approve{background:var(--green);color:#fff}
+  .t-btn.deny{background:var(--red);color:#fff}
+  .training-uid-tag{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:500;padding:1px 7px;border-radius:10px;margin-left:6px}
+  .training-uid-tag.ok{color:var(--green);background:rgba(63,185,80,.1);border:1px solid rgba(63,185,80,.3)}
+  .training-uid-tag.no{color:var(--amber);background:rgba(227,167,64,.1);border:1px solid rgba(227,167,64,.35)}
+  .training-uid-tag.ovr{color:var(--purple);background:rgba(184,141,255,.1);border:1px solid rgba(184,141,255,.3)}
+  .cert-viewer-img{max-width:100%;max-height:60vh;border-radius:8px;border:1px solid var(--border);display:block;margin:0 auto}
+  .pill-toggle{display:flex;align-items:center;gap:10px;padding:11px 14px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);cursor:pointer}
+  .pill-toggle input{accent-color:var(--purple);width:16px;height:16px;cursor:pointer}
+  /* Cert viewer must sit ABOVE other modals (it can be opened from within the user-detail modal) */
+  #certModal{z-index:1600}
+  .sp-machine-block{margin-bottom:14px}
+  .sp-machine-block:last-child{margin-bottom:0}
+  .ud-train-row{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--border);flex-wrap:wrap}
+  .ud-train-row:last-child{border-bottom:none}
+  .ud-train-name{flex:1;min-width:90px;font-size:12.5px;font-weight:500}
+  .ud-train-ovr{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--purple)}
+  .ud-train-ovr input{accent-color:var(--purple);width:14px;height:14px;cursor:pointer}
+
+  /* ---- PRINT REPORT VIEW ---- */
+  @media print {
+    body::before { display: none; }
+    header, .quick-add, .search-row, .stat-bar, .bottom-section, .pending-banner, .emergency-banner, .dropdown-menu, #toast, .deny-alert { display: none !important; }
+    .machine-card { break-inside: avoid; page-break-inside: avoid; }
+  }
+
+  /* ---- MOBILE polish ---- */
+  @media(max-width:1100px){.stat-bar{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:760px){
+    header{padding:0 14px;height:auto;min-height:56px;flex-wrap:wrap;gap:8px;padding-top:8px;padding-bottom:8px}
+    .header-right{gap:6px}
+    .icon-btn{padding:5px 8px;font-size:10px}
+    main{padding:16px}
+    .stat-bar{grid-template-columns:repeat(2,1fr);gap:8px}
+    .stat-card{padding:14px 16px}
+    .stat-value{font-size:22px}
+    .quick-add{flex-direction:column;align-items:stretch;padding:12px}
+    .machine-pick{justify-content:flex-start}
+    .section-header{padding:12px 14px;gap:8px}
+    .filter-group{flex-wrap:wrap}
+    .log-table th, .log-table td{padding:10px 12px;font-size:12px}
+    .log-time{font-size:10px}
+    .charts-grid{padding:14px}
+    .groups-body{padding:14px}
+    .usage-grid{padding:14px;grid-template-columns:1fr}
+    .modal{padding:20px}
+    .deny-alert{min-width:auto;left:10px;right:10px;transform:translateY(-20px);width:auto;max-width:none}
+    .deny-alert.show{transform:translateY(0)}
+    #toast{bottom:14px;right:14px;left:14px;max-width:none}
+  }
+</style>
+</head>
+<body>
+
+<!-- LOGIN OVERLAY -->
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="login-logo-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+      <div>
+        <div class="login-logo-text">Access Control</div>
+        <div class="login-logo-sub">Workshop System</div>
+      </div>
+    </div>
+    <div class="login-tabs">
+      <button class="login-tab active" id="loginTabStaff" onclick="setLoginMode('staff')">Staff</button>
+      <button class="login-tab" id="loginTabStudent" onclick="setLoginMode('student')">Student</button>
+    </div>
+
+    <div id="loginStaffPanel">
+      <div class="login-title">Staff Sign In</div>
+      <div class="login-desc">Enter your teacher username and passcode to manage workshop access.</div>
+      <div class="login-field">
+        <label class="login-label" for="loginUser">Username</label>
+        <input class="login-input" id="loginUser" autocomplete="username" placeholder="e.g. smith" onkeydown="if(event.key==='Enter')document.getElementById('loginPin').focus()">
+      </div>
+      <div class="login-field">
+        <label class="login-label" for="loginPin">Passcode</label>
+        <input class="login-input" id="loginPin" type="password" inputmode="numeric" autocomplete="current-password" placeholder="••••" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <button class="login-btn" onclick="doLogin()">Sign In</button>
+    </div>
+
+    <div id="loginStudentPanel" style="display:none">
+      <div class="login-title">Student Sign In</div>
+      <div class="login-desc">Enter the UID on your access card to view your training status and upload your OnGuard certificate.</div>
+      <div class="login-field">
+        <label class="login-label" for="loginStudentUid">Card UID</label>
+        <input class="login-input" id="loginStudentUid" placeholder="e.g. C761F803" style="text-transform:uppercase" maxlength="12" onkeydown="if(event.key==='Enter')doStudentLogin()">
+      </div>
+      <button class="login-btn" onclick="doStudentLogin()">View My Training</button>
+    </div>
+
+    <div class="login-error" id="loginError"></div>
+    <div class="login-foot" id="loginFoot"></div>
+  </div>
+</div>
+
+<!-- STUDENT PORTAL -->
+<div class="student-portal" id="studentPortal">
+  <div class="sp-header">
+    <div class="login-logo">
+      <div class="login-logo-icon" style="width:30px;height:30px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+      <div>
+        <div class="login-logo-text">OnGuard</div>
+        <div class="login-logo-sub">Student Portal</div>
+      </div>
+    </div>
+    <button class="icon-btn" onclick="logout()">Log out ⏻</button>
+  </div>
+  <div class="sp-body" id="studentPortalBody"></div>
+</div>
+<input type="file" id="certFileInput" accept="image/*" style="display:none" onchange="onCertSelected(this.files[0])">
+
+<!-- CERTIFICATE VIEWER MODAL -->
+<div class="modal-overlay" id="certModal">
+  <div class="modal wide" id="certModalBody"></div>
+</div>
+
+<!-- EMERGENCY BANNER -->
+<div class="emergency-banner" id="emergencyBanner">
+  <div class="emergency-icon">!</div>
+  <div class="emergency-text">
+    <div class="emergency-title">Workshop Lockdown Active</div>
+    <div class="emergency-sub" id="emergencySub">All machines deny access until cleared</div>
+  </div>
+  <button class="icon-btn danger" onclick="clearEmergency()">Clear Lockdown</button>
+</div>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+    <div>
+      <div class="logo-text">Access Control</div>
+      <div class="logo-sub">Workshop System</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="dropdown">
+      <button class="icon-btn" onclick="toggleDropdown(event)">⚙ Tools ▾</button>
+      <div class="dropdown-menu" id="toolsMenu">
+        <button onclick="openSchedule()">⏱ Schedules</button>
+        <button onclick="openReport()">📄 Compliance Report</button>
+        <button class="admin-only" onclick="openStaffModal()">👥 Manage Staff</button>
+        <button onclick="backupData()">💾 Backup Database</button>
+        <button onclick="document.getElementById('restoreFile').click()">📥 Restore Backup</button>
+        <div class="sep"></div>
+        <button class="danger" onclick="confirmEmergency()">🚨 Activate Lockdown</button>
+      </div>
+    </div>
+    <button class="icon-btn" id="themeBtn" onclick="toggleTheme()" title="Toggle light/dark"><span id="themeIcon">🌙</span></button>
+    <button class="icon-btn" id="soundBtn" onclick="toggleSound()" title="Audible alert on denied scans">🔔 <span id="soundLabel">Off</span></button>
+    <button class="icon-btn icon-btn-user" id="whoBtn" onclick="logout()" title="Log out"><span id="whoLabel">—</span> ⏻</button>
+    <div class="status-pill">
+      <div class="status-dot" id="statusDot"></div>
+      <span id="statusText">Connecting...</span>
+    </div>
+  </div>
+</header>
+
+<input type="file" id="restoreFile" accept=".json" style="display:none" onchange="restoreData(this.files[0])">
+
+<main>
+  <div class="page-title">Dashboard Overview</div>
+  <div class="section-heading">Workshop Access Control <span class="section-heading-sub" id="schedSummary"></span></div>
+
+  <!-- PENDING -->
+  <div class="pending-banner" id="pendingBanner">
+    <div class="pending-head">
+      <div class="pending-title">🆕 Unknown Cards Detected</div>
+      <span style="font-family:var(--mono);font-size:11px;color:var(--muted)" id="pendingCount"></span>
+    </div>
+    <div class="pending-list" id="pendingList"></div>
+  </div>
+
+  <div class="stat-bar">
+    <div class="stat-card"><div class="stat-label">Total Students</div><div class="stat-value" id="statTotal">—</div><div class="stat-sub" id="statTotalSub"></div></div>
+    <div class="stat-card"><div class="stat-label">Authorised</div><div class="stat-value green" id="statGranted">—</div><div class="stat-sub" id="statGrantedSub"></div></div>
+    <div class="stat-card"><div class="stat-label">Total Scans</div><div class="stat-value" id="statScans">—</div><div class="stat-sub" id="statScansSub">Last 200 logs</div></div>
+    <div class="stat-card"><div class="stat-label">Denied</div><div class="stat-value red" id="statDenied">—</div><div class="stat-sub" id="statDeniedSub"></div></div>
+  </div>
+
+  <div class="quick-add">
+    <span class="quick-add-label">Quick Add</span>
+    <input class="input-uid" id="qa-uid" placeholder="UID e.g. C761F803" maxlength="12" onkeydown="if(event.key==='Enter')quickAdd()" style="flex:1;min-width:120px">
+    <input class="input-name" id="qa-name" placeholder="Person's name" onkeydown="if(event.key==='Enter')quickAdd()" style="flex:1.5;min-width:140px">
+    <div class="machine-pick" id="qaMachinePick"></div>
+    <button class="btn-add" onclick="quickAdd()">+ Add</button>
+  </div>
+
+  <div class="search-row">
+    <div class="search-wrap">
+      <span class="search-icon">⌕</span>
+      <input class="search-input" id="searchInput" placeholder="Search users by name or UID..." oninput="onSearchInput(this.value)">
+    </div>
+  </div>
+
+  <div class="machines-grid" id="machinesGrid"></div>
+
+  <div class="bottom-section">
+    <div class="section-header">
+      <div class="tabs-row" id="tabsRow">
+        <button class="tab-btn active" onclick="switchTab('log',this)">Activity Log</button>
+        <button class="tab-btn" onclick="switchTab('usage',this)">Usage by Person</button>
+        <button class="tab-btn" onclick="switchTab('charts',this)">Analytics</button>
+        <button class="tab-btn" onclick="switchTab('groups',this)">Groups</button>
+        <button class="tab-btn" onclick="switchTab('training',this)">Training <span class="tab-badge" id="trainingTabBadge" style="display:none"></span></button>
+        <button class="tab-btn" onclick="switchTab('audit',this)">Audit Log</button>
+      </div>
+      <div class="action-row" id="bottomActions"></div>
+    </div>
+    <div id="tabContent"></div>
+  </div>
+</main>
+
+<!-- DENY ALERT -->
+<div class="deny-alert" id="denyAlert">
+  <div class="deny-icon">!</div>
+  <div class="deny-text">
+    <div class="deny-title">Access Denied</div>
+    <div class="deny-detail"><span class="deny-name"></span> @ <span class="deny-machine"></span></div>
+  </div>
+</div>
+
+<!-- CLEAR LOGS MODAL -->
+<div class="modal-overlay" id="clearModal">
+  <div class="modal">
+    <div class="modal-title danger">Clear Logs</div>
+    <div class="modal-body">Choose which logs to delete. This cannot be undone.</div>
+    <div class="clear-modal-opts" id="clearOpts"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeClearModal()">Cancel</button>
+      <button class="btn-confirm-delete" onclick="confirmClearLogs()">Clear</button>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE MODAL -->
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal">
+    <div class="modal-title danger">Confirm Delete</div>
+    <div class="modal-body">
+      Delete <span class="modal-uid" id="modalName"></span>
+      (<span class="modal-uid" id="modalUID"></span>)?
+    </div>
+    <div class="clear-modal-opts" id="deleteOpts"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-confirm-delete" onclick="confirmDelete()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- USER DETAIL MODAL -->
+<div class="modal-overlay" id="userModal">
+  <div class="modal wide" id="userModalBody"></div>
+</div>
+
+<!-- SCHEDULE MODAL -->
+<div class="modal-overlay" id="scheduleModal">
+  <div class="modal wide" id="scheduleModalBody"></div>
+</div>
+
+<!-- LOCKDOWN CONFIRM -->
+<div class="modal-overlay" id="lockdownModal">
+  <div class="modal">
+    <div class="modal-title danger">🚨 Activate Workshop Lockdown</div>
+    <div class="modal-body">
+      Locking down the workshop denies access to <strong>every machine</strong> for <strong>every user</strong> until you clear it. Use this for fires, injuries, or other emergencies.
+      <br><br>
+      <input id="lockdownReason" class="input-name" style="width:100%;padding:9px 12px;font-size:13px" placeholder="Reason (optional, e.g. fire drill)">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeLockdownModal()">Cancel</button>
+      <button class="btn-confirm-delete" onclick="activateEmergency()">Activate Lockdown</button>
+    </div>
+  </div>
+</div>
+
+<!-- STAFF MANAGEMENT MODAL -->
+<div class="modal-overlay" id="staffModal">
+  <div class="modal wide" id="staffModalBody"></div>
+</div>
+
+<!-- RESTORE CONFIRM -->
+<div class="modal-overlay" id="restoreModal">
+  <div class="modal">
+    <div class="modal-title amber">Restore Backup?</div>
+    <div class="modal-body">
+      This will <strong>overwrite</strong> the current Firebase database with the backup file. Existing data will be replaced.
+      <div id="restorePreview" style="margin-top:14px;font-family:var(--mono);font-size:11px;color:var(--muted)"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeRestoreModal()">Cancel</button>
+      <button class="btn-confirm-delete" onclick="confirmRestore()">Restore</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script type="module">
+import { initializeApp }         from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, set, remove, onValue, query, limitToLast, push, get, update }
+                                  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+// ================================================================
+//  FIREBASE CONFIG
+// ================================================================
+const firebaseConfig = {
+  apiKey:            "AIzaSyDbbCMdpKYcBMtgsez_TzclFI0MOpQbSLM",
+  authDomain:        "rfid-access-1ae01.firebaseapp.com",
+  databaseURL:       "https://rfid-access-1ae01-default-rtdb.firebaseio.com/",
+  projectId:         "rfid-access-1ae01",
+  storageBucket:     "rfid-access-1ae01.appspot.com",
+  messagingSenderId: "1005043182254",
+  appId:             "1:1005043182254:web:2e365e857a8b96bdca9b3f"
+};
+
+const MACHINES       = ["machine_1","machine_2","machine_3"];
+const DEFAULT_LABELS = { machine_1:"Machine 1", machine_2:"Machine 2", machine_3:"Machine 3" };
+
+const app = initializeApp(firebaseConfig);
+const db  = getDatabase(app);
+
+// ============ Service worker (best-effort, ignored if file://) ============
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(() => {});
+}
+
+// ============ STATE ============
+const uids       = { machine_1:{}, machine_2:{}, machine_3:{} };
+let names        = {};
+let machineNames = {...DEFAULT_LABELS};
+let heartbeats   = {};
+let logs         = [];
+let inductions   = {};            // { UID: { machine_X: { date, by } } }
+let notesMap     = {};            // { UID: "free text" }
+let supervisors  = {};            // { UID: true }  — supervisor cards for two-person rule
+let staff        = {};            // { username: { name, pin, role } } — teacher login accounts
+let training     = {};            // { UID: { status, submittedAt, reviewedBy, reviewedAt, note } } — lightweight
+let trainingOverride = {};        // { UID: true } — teacher override allowing access without training
+let groups       = {};            // { groupId: { name, machines:[], members:[] } }
+let maintenance  = {};            // { machine_X: true/{by, reason, since} }
+let twoPerson    = {};            // { machine_X: true }
+let schedules    = {};            // { global: {...}, UID: {...} }
+let emergency    = null;          // null or { by, ts, reason }
+let auditEntries = [];
+let dismissedPending = {};        // { UID: ts }
+
+let activeTab    = "log";
+let logFilter    = "all";
+let timeRange    = "all";
+let searchQuery  = "";
+let sortField    = "time";
+let sortDir      = "desc";
+let soundEnabled = false;
+let lastSeenLogKey = null;
+let firstLogLoad   = true;
+let pendingDel     = null;
+let chartInstances = {};
+let auditFilterAction = "all";
+let auditSearch       = "";
+let auditTimeRange    = "all";  // independent of the log tab's timeRange
+
+// ============ HELPERS ============
+const label   = m  => machineNames[m] || DEFAULT_LABELS[m] || m;
+const nameFor = id => names[id] || null;
+// Session-based identity (set at login). Drives the audit log "by" field.
+function getSession() {
+  try { return JSON.parse(localStorage.getItem("ac_session") || "null"); } catch(e) { return null; }
+}
+const who         = () => { const s = getSession(); return (s && s.name) ? s.name : "Anonymous"; };
+const currentRole = () => { const s = getSession(); return s ? s.role : null; };
+
+// A student is cleared for a SPECIFIC machine if their OnGuard training for that
+// machine is approved, OR a teacher has set an override for that machine.
+function isTrainingClearedFor(uid, machine) {
+  return training[uid]?.[machine]?.status === "approved" || trainingOverride[uid]?.[machine] === true;
+}
+// A UID is "known" to the system if it has a name, is on any machine, or has a training record.
+function uidIsKnown(uid) {
+  if (names[uid]) return true;
+  if (training[uid]) return true;
+  for (const m of MACHINES) if (uids[m] && uids[m][uid] !== undefined) return true;
+  return false;
+}
+
+function relTime(ts) {
+  if (!ts) return "—";
+  const t = Date.parse(ts);
+  if (isNaN(t)) return "";
+  const sec = Math.floor((Date.now() - t) / 1000);
+  if (sec < 0)      return "just now";
+  if (sec < 60)     return `${sec}s ago`;
+  if (sec < 3600)   return `${Math.floor(sec/60)}m ago`;
+  if (sec < 86400)  return `${Math.floor(sec/3600)}h ago`;
+  if (sec < 604800) return `${Math.floor(sec/86400)}d ago`;
+  return new Date(t).toLocaleDateString();
+}
+
+function inTimeRange(ts) {
+  if (timeRange === "all") return true;
+  const t = Date.parse(ts);
+  if (isNaN(t)) return false;
+  const age = Date.now() - t;
+  if (timeRange === "today") return age < 86400000;
+  if (timeRange === "week")  return age < 7  * 86400000;
+  if (timeRange === "month") return age < 30 * 86400000;
+  return true;
+}
+
+function avatarHTML(uid, name, opts = {}) {
+  const text = name
+    ? name.trim().split(/\s+/).map(w => w[0]).slice(0,2).join("").toUpperCase()
+    : (uid || "??").slice(0,2).toUpperCase();
+  let h = 0;
+  for (let i = 0; i < (uid||"").length; i++) h = (h*31 + uid.charCodeAt(i)) % 360;
+  const lg = opts.lg ? "lg" : "";
+  const clickAttr = opts.noClick ? "" : `onclick="event.stopPropagation();openUserDetail('${uid}')"`;
+  return `<div class="avatar ${lg}" ${clickAttr} title="View user details" style="background:hsl(${h},45%,22%);color:hsl(${h},70%,75%);border:1px solid hsl(${h},50%,38%)">${text}</div>`;
+}
+
+function heartbeatStatus(machine) {
+  const ts = heartbeats[machine];
+  if (!ts) return { cls:"", text:"Awaiting heartbeat" };
+  const t = typeof ts === "number" ? ts : Date.parse(ts);
+  if (isNaN(t)) return { cls:"", text:"Awaiting heartbeat" };
+  const age = (Date.now() - t) / 1000;
+  if (age < 120)  return { cls:"green", text:"Online" };
+  if (age < 300)  return { cls:"amber", text:`Stale (${Math.floor(age/60)}m)` };
+  return            { cls:"red",   text:"Offline" };
+}
+
+function matchesSearch(uid) {
+  if (!searchQuery) return true;
+  const q = searchQuery.toLowerCase();
+  const n = (names[uid] || "").toLowerCase();
+  return uid.toLowerCase().includes(q) || n.includes(q);
+}
+
+function escHTML(s) {
+  return String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+
+function escAttr(s) {
+  return String(s ?? "").replace(/"/g,'&quot;');
+}
+
+// ============ AUDIT LOGGING ============
+async function logAudit(action, target = "", detail = "") {
+  try {
+    const key = push(ref(db, "audit")).key;
+    await set(ref(db, `audit/${key}`), {
+      by: who(),
+      action,
+      target,
+      detail,
+      ts: new Date().toISOString()
+    });
+  } catch(e) {}
+}
+
+// ============ CONNECTION ============
+onValue(ref(db, ".info/connected"), snap => {
+  const on = snap.val();
+  document.getElementById("statusDot").className    = on ? "status-dot connected" : "status-dot";
+  document.getElementById("statusText").textContent = on ? "Connected" : "Disconnected";
+});
+
+// ============ DATA WATCHERS ============
+onValue(ref(db, "names"), snap => {
+  names = {};
+  if (snap.exists()) snap.forEach(c => { names[c.key] = c.val(); });
+  renderAll();
+});
+
+onValue(ref(db, "machineNames"), snap => {
+  machineNames = {...DEFAULT_LABELS};
+  if (snap.exists()) snap.forEach(c => { if (c.val()) machineNames[c.key] = c.val(); });
+  renderAll();
+});
+
+onValue(ref(db, "heartbeat"), snap => {
+  heartbeats = {};
+  if (snap.exists()) {
+    snap.forEach(c => {
+      const v = c.val();
+      if (v && typeof v === "object") heartbeats[c.key] = v.timestamp || v.ts || v.last || null;
+      else                              heartbeats[c.key] = v;
+    });
+  }
+  renderMachines();
+});
+setInterval(() => { renderMachines(); if (activeTab === "log") renderTab(); }, 30000);
+
+MACHINES.forEach(m => {
+  onValue(ref(db, m), snap => {
+    uids[m] = {};
+    if (snap.exists()) {
+      snap.forEach(c => {
+        if (c.key === "logs") return;
+        if (typeof c.val() === "boolean") uids[m][c.key] = c.val();
+      });
+    }
+    renderMachines();
+    renderPending();
+    updateStats();
+    if (activeTab === "groups") renderTab();
+  });
+});
+
+onValue(query(ref(db, "logs"), limitToLast(200)), snap => {
+  logs = [];
+  if (snap.exists()) {
+    snap.forEach(c => {
+      const s = c.val();
+      if (!s || typeof s !== "object") return;
+      logs.push({
+        key:       c.key,
+        uid:       s.uid       || "UNKNOWN",
+        result:    s.result    || "DENIED",
+        timestamp: s.timestamp || "",
+        machine:   s.machine   || null
+      });
+    });
+  }
+  logs.reverse();
+  if (firstLogLoad) {
+    firstLogLoad = false;
+    lastSeenLogKey = logs[0]?.key ?? null;
+  } else {
+    checkForNewDeny();
+  }
+  renderPending();
+  renderTab();
+  updateStats();
+});
+
+onValue(ref(db, "inductions"), snap => {
+  inductions = {};
+  if (snap.exists()) snap.forEach(c => { inductions[c.key] = c.val(); });
+  renderMachines();
+});
+
+onValue(ref(db, "notes"), snap => {
+  notesMap = {};
+  if (snap.exists()) snap.forEach(c => { notesMap[c.key] = c.val(); });
+});
+
+onValue(ref(db, "supervisors"), snap => {
+  supervisors = {};
+  if (snap.exists()) snap.forEach(c => { if (c.val()) supervisors[c.key] = true; });
+  renderMachines();
+});
+
+onValue(ref(db, "staff"), snap => {
+  staff = {};
+  if (snap.exists()) snap.forEach(c => { staff[c.key] = c.val(); });
+  if (document.getElementById("staffModal").classList.contains("open")) renderStaffModal();
+});
+
+// Lightweight training status (NOT the certificate image — that's fetched on demand)
+onValue(ref(db, "training"), snap => {
+  training = {};
+  if (snap.exists()) snap.forEach(c => { training[c.key] = c.val(); });
+  updateTrainingBadge();
+  renderMachines();
+  if (activeTab === "training") renderTab();
+  // If a student is viewing their portal, refresh it
+  if (getSession()?.type === "student") renderStudentPortal();
+});
+
+onValue(ref(db, "trainingOverride"), snap => {
+  trainingOverride = {};   // { UID: { machine: true } }
+  if (snap.exists()) snap.forEach(c => { trainingOverride[c.key] = c.val() || {}; });
+  renderMachines();
+  if (getSession()?.type === "student") renderStudentPortal();
+});
+
+onValue(ref(db, "groups"), snap => {
+  groups = {};
+  if (snap.exists()) snap.forEach(c => { groups[c.key] = c.val(); });
+  renderMachines();
+  if (activeTab === "groups") renderTab();
+});
+
+onValue(ref(db, "maintenance"), snap => {
+  maintenance = {};
+  if (snap.exists()) snap.forEach(c => { maintenance[c.key] = c.val(); });
+  renderMachines();
+});
+
+onValue(ref(db, "twoPerson"), snap => {
+  twoPerson = {};
+  if (snap.exists()) snap.forEach(c => { twoPerson[c.key] = c.val(); });
+  renderMachines();
+});
+
+onValue(ref(db, "schedule"), snap => {
+  schedules = {};
+  if (snap.exists()) snap.forEach(c => { schedules[c.key] = c.val(); });
+  renderScheduleSummary();
+});
+
+onValue(ref(db, "emergency"), snap => {
+  emergency = snap.val();
+  renderEmergency();
+});
+
+onValue(ref(db, "dismissedPending"), snap => {
+  dismissedPending = {};
+  if (snap.exists()) snap.forEach(c => { dismissedPending[c.key] = c.val(); });
+  renderPending();
+});
+
+onValue(query(ref(db, "audit"), limitToLast(300)), snap => {
+  auditEntries = [];
+  if (snap.exists()) {
+    snap.forEach(c => {
+      const v = c.val();
+      if (v && typeof v === "object") auditEntries.push({ key:c.key, ...v });
+    });
+  }
+  auditEntries.reverse();
+  if (activeTab === "audit") renderTab();
+});
+
+// ============ DENY ALERT + SOUND ============
+function checkForNewDeny() {
+  if (!logs.length) return;
+  const latest = logs[0];
+  if (latest.key !== lastSeenLogKey && latest.result === "DENIED") {
+    showDenyAlert(latest);
+    beep();
+  }
+  lastSeenLogKey = latest.key;
+}
+function showDenyAlert(l) {
+  const el = document.getElementById("denyAlert");
+  el.querySelector(".deny-name").textContent    = nameFor(l.uid) || l.uid;
+  el.querySelector(".deny-machine").textContent = label(l.machine) || "—";
+  el.classList.add("show");
+  clearTimeout(showDenyAlert._t);
+  showDenyAlert._t = setTimeout(() => el.classList.remove("show"), 4500);
+}
+let audioCtx;
+function beep() {
+  if (!soundEnabled) return;
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    const beepAt = (freq, when) => {
+      const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.connect(g); g.connect(audioCtx.destination);
+      o.frequency.value = freq; o.type = "sine";
+      g.gain.setValueAtTime(0, audioCtx.currentTime + when);
+      g.gain.linearRampToValueAtTime(0.25, audioCtx.currentTime + when + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + when + 0.35);
+      o.start(audioCtx.currentTime + when); o.stop(audioCtx.currentTime + when + 0.36);
+    };
+    beepAt(880, 0); beepAt(660, 0.2);
+  } catch(e){}
+}
+
+// ============ EMERGENCY ============
+function renderEmergency() {
+  const banner = document.getElementById("emergencyBanner");
+  if (emergency && (emergency === true || emergency.active !== false)) {
+    banner.classList.add("on");
+    const sub = (emergency && emergency.reason) ? `Reason: ${escHTML(emergency.reason)} · Activated by ${escHTML(emergency.by||'')}` : "All machines deny access until cleared";
+    document.getElementById("emergencySub").innerHTML = sub;
+  } else {
+    banner.classList.remove("on");
+  }
+}
+window.confirmEmergency = () => {
+  closeDropdown();
+  document.getElementById("lockdownReason").value = "";
+  document.getElementById("lockdownModal").classList.add("open");
+};
+window.closeLockdownModal = () => document.getElementById("lockdownModal").classList.remove("open");
+window.activateEmergency = async () => {
+  const reason = document.getElementById("lockdownReason").value.trim();
+  try {
+    await set(ref(db, "emergency"), { active: true, by: who(), reason, ts: new Date().toISOString() });
+    logAudit("set_emergency", "", reason);
+    toast("Workshop lockdown ACTIVATED");
+  } catch(e) { toast("Error: " + e.message, true); }
+  closeLockdownModal();
+};
+window.clearEmergency = async () => {
+  try {
+    await remove(ref(db, "emergency"));
+    logAudit("clear_emergency");
+    toast("Lockdown cleared");
+  } catch(e) { toast("Error: " + e.message, true); }
+};
+
+// ============ PENDING UID QUEUE (derived from logs) ============
+function getPendingUIDs() {
+  const allKnown = new Set();
+  MACHINES.forEach(m => Object.keys(uids[m]||{}).forEach(u => allKnown.add(u)));
+  const pending = {};
+  logs.filter(s => s.result === "DENIED").forEach(s => {
+    if (allKnown.has(s.uid)) return;
+    if (dismissedPending[s.uid]) return;
+    if (!pending[s.uid]) pending[s.uid] = { count: 0, lastSeen: "", lastMachine: null };
+    pending[s.uid].count++;
+    if (!pending[s.uid].lastSeen || (s.timestamp > pending[s.uid].lastSeen)) {
+      pending[s.uid].lastSeen = s.timestamp;
+      pending[s.uid].lastMachine = s.machine;
+    }
+  });
+  return pending;
+}
+function renderPending() {
+  const pending = getPendingUIDs();
+  const keys = Object.keys(pending);
+  const banner = document.getElementById("pendingBanner");
+  if (!keys.length) { banner.classList.remove("on"); return; }
+  banner.classList.add("on");
+  document.getElementById("pendingCount").textContent = `${keys.length} pending`;
+  document.getElementById("pendingList").innerHTML = keys.map(uid => {
+    const p = pending[uid];
+    return `<div class="pending-row">
+      <div class="pending-uid">${escHTML(uid)}</div>
+      <div class="pending-meta">${p.count}× denied · last @ ${escHTML(label(p.lastMachine)||'?')} · ${relTime(p.lastSeen)}</div>
+      <div class="pending-actions">
+        <button class="btn-register" onclick="registerPending('${uid}','${p.lastMachine||''}')">+ Register</button>
+        <button class="btn-dismiss" onclick="dismissPending('${uid}')">Dismiss</button>
+      </div>
+    </div>`;
+  }).join("");
+}
+window.registerPending = (uid, machine) => {
+  document.getElementById("qa-uid").value  = uid;
+  document.getElementById("qa-name").focus();
+  document.getElementById("qa-name").value = "";
+  if (machine) {
+    document.querySelectorAll("#qaMachinePick input").forEach(i => {
+      i.checked = (i.dataset.m === machine);
+    });
+  }
+  window.scrollTo({ top: 0, behavior: "smooth" });
+  toast(`Fill the name and press Add to register ${uid}`);
+};
+window.dismissPending = async (uid) => {
+  try {
+    await set(ref(db, `dismissedPending/${uid}`), new Date().toISOString());
+    logAudit("dismiss_pending", uid);
+  } catch(e) {}
+};
+
+// ============ THEME ============
+function applyTheme(t) {
+  document.documentElement.setAttribute("data-theme", t);
+  document.getElementById("themeIcon").textContent = t === "light" ? "☀" : "🌙";
+  localStorage.setItem("ac_theme", t);
+  document.querySelector('meta[name="theme-color"]').setAttribute("content", t === "light" ? "#0088b8" : "#00d4ff");
+}
+window.toggleTheme = () => {
+  const cur = document.documentElement.getAttribute("data-theme") || "dark";
+  applyTheme(cur === "dark" ? "light" : "dark");
+  if (activeTab === "charts") renderTab();
+};
+
+// ============ DROPDOWN ============
+window.toggleDropdown = (e) => {
+  e.stopPropagation();
+  document.getElementById("toolsMenu").classList.toggle("open");
+};
+function closeDropdown() {
+  document.getElementById("toolsMenu").classList.remove("open");
+}
+document.addEventListener("click", e => {
+  if (!e.target.closest(".dropdown")) closeDropdown();
+});
+
+// ============ AUTH / LOGIN ============
+// Bootstrap admin — always works even if /staff is empty, so you can never be locked out.
+// CHANGE THIS PASSCODE and create real staff accounts via Tools → Manage Staff.
+const BOOTSTRAP_ADMIN = { username: "admin", pin: "1234", name: "Administrator", role: "admin" };
+
+function showLoginError(msg) {
+  document.getElementById("loginError").textContent = msg || "";
+}
+
+window.doLogin = async () => {
+  const u = document.getElementById("loginUser").value.trim().toLowerCase();
+  const p = document.getElementById("loginPin").value.trim();
+  if (!u || !p) { showLoginError("Enter your username and passcode"); return; }
+
+  let account = null;
+
+  // 1) Bootstrap admin (works offline, no DB needed)
+  if (u === BOOTSTRAP_ADMIN.username && p === BOOTSTRAP_ADMIN.pin) {
+    account = { username: BOOTSTRAP_ADMIN.username, name: BOOTSTRAP_ADMIN.name, role: BOOTSTRAP_ADMIN.role };
+  } else {
+    // 2) Look up the staff account in Firebase
+    try {
+      const snap = await get(ref(db, `staff/${u}`));
+      if (snap.exists()) {
+        const v = snap.val();
+        if (String(v.pin) === p) {
+          account = { username: u, name: v.name || u, role: v.role || "teacher" };
+        }
+      }
+    } catch(e) {
+      showLoginError("Connection error — check internet and try again");
+      return;
+    }
+  }
+
+  if (!account) { showLoginError("Incorrect username or passcode"); return; }
+
+  localStorage.setItem("ac_session", JSON.stringify({
+    type: "staff", username: account.username, name: account.name, role: account.role, ts: Date.now()
+  }));
+  showLoginError("");
+  document.getElementById("loginPin").value = "";
+  logAudit("login", account.name, `@${account.username}`);
+  applySession();
+  toast(`Welcome, ${account.name}`);
+};
+
+// Switch the login card between Staff and Student modes
+window.setLoginMode = (mode) => {
+  const staffMode = mode === "staff";
+  document.getElementById("loginStaffPanel").style.display   = staffMode ? "" : "none";
+  document.getElementById("loginStudentPanel").style.display = staffMode ? "none" : "";
+  document.getElementById("loginTabStaff").classList.toggle("active", staffMode);
+  document.getElementById("loginTabStudent").classList.toggle("active", !staffMode);
+  showLoginError("");
+  setTimeout(() => {
+    const f = document.getElementById(staffMode ? "loginUser" : "loginStudentUid");
+    if (f) f.focus();
+  }, 50);
+};
+
+// Student login — identified by their card UID. Low-privilege (own training only).
+window.doStudentLogin = async () => {
+  const uid = document.getElementById("loginStudentUid").value.trim().toUpperCase();
+  if (uid.length < 4) { showLoginError("Enter the UID on your card (min 4 characters)"); return; }
+  if (!uidIsKnown(uid)) {
+    showLoginError("That UID isn't registered yet — see your teacher to be added first.");
+    return;
+  }
+  localStorage.setItem("ac_session", JSON.stringify({
+    type: "student", uid, name: nameFor(uid) || uid, ts: Date.now()
+  }));
+  showLoginError("");
+  document.getElementById("loginStudentUid").value = "";
+  logAudit("student_login", nameFor(uid) || uid, uid);
+  applySession();
+};
+
+window.logout = async () => {
+  if (!getSession()) return;
+  if (!confirm(`Log out of ${who()}?`)) return;
+  await logAudit("logout", who());
+  localStorage.removeItem("ac_session");
+  location.reload();
+};
+
+// Apply current session to the UI: route to student portal, staff dashboard, or login.
+function applySession() {
+  const s = getSession();
+  const overlay = document.getElementById("loginOverlay");
+  const portal  = document.getElementById("studentPortal");
+
+  if (s && s.type === "student") {
+    // STUDENT → portal only, hide login + admin dashboard chrome
+    overlay.classList.add("hidden");
+    portal.classList.add("open");
+    document.body.style.overflow = "hidden";
+    renderStudentPortal();
+    return;
+  }
+
+  portal.classList.remove("open");
+  document.body.style.overflow = "";
+
+  if (s) {
+    // STAFF → full dashboard
+    overlay.classList.add("hidden");
+    document.getElementById("whoLabel").textContent = s.name;
+    document.getElementById("whoBtn").title = `Logged in as ${s.name} (${s.role}) — click to log out`;
+    document.querySelectorAll(".admin-only").forEach(el => {
+      el.style.display = (s.role === "admin") ? "" : "none";
+    });
+  } else {
+    // No session → login
+    overlay.classList.remove("hidden");
+    document.querySelectorAll(".admin-only").forEach(el => { el.style.display = "none"; });
+    setTimeout(() => { const f = document.getElementById("loginUser"); if (f) f.focus(); }, 60);
+  }
+}
+
+// ============ STAFF MANAGEMENT (admin only) ============
+window.openStaffModal = () => {
+  closeDropdown();
+  if (currentRole() !== "admin") { toast("Only admins can manage staff", true); return; }
+  renderStaffModal();
+  document.getElementById("staffModal").classList.add("open");
+};
+window.closeStaffModal = () => document.getElementById("staffModal").classList.remove("open");
+document.getElementById("staffModal").addEventListener("click", e => { if (e.target.id === "staffModal") closeStaffModal(); });
+
+function renderStaffModal() {
+  const keys = Object.keys(staff).sort();
+  const mySession = getSession();
+  document.getElementById("staffModalBody").innerHTML = `
+    <div class="modal-title">Manage Staff</div>
+    <div class="modal-body" style="margin-bottom:16px">Teacher accounts who can sign in to this dashboard. Each sign-in is recorded in the audit log.</div>
+
+    <div class="ud-section-title">Accounts (${keys.length})</div>
+    <div class="staff-list">
+      ${keys.length ? keys.map(u => {
+        const s = staff[u] || {};
+        const isMe = mySession && mySession.username === u;
+        return `<div class="staff-row">
+          <div class="staff-info">
+            <div class="staff-name">${escHTML(s.name || u)}${isMe ? " (you)" : ""}</div>
+            <div class="staff-meta">@${escHTML(u)} · passcode ${"•".repeat(String(s.pin||"").length || 4)}</div>
+          </div>
+          <span class="staff-role ${s.role === "admin" ? "admin" : "teacher"}">${escHTML(s.role || "teacher")}</span>
+          <button class="group-delete" onclick="resetStaffPin('${escAttr(u)}')">Reset PIN</button>
+          <button class="group-delete" onclick="removeStaff('${escAttr(u)}')">Remove</button>
+        </div>`;
+      }).join("") : `<div class="sched-label-mini" style="text-align:center;padding:14px">No staff accounts yet. Add one below.</div>`}
+    </div>
+
+    <div class="ud-section-title">Add staff account</div>
+    <div class="staff-add-grid">
+      <input id="staff-new-name" placeholder="Full name (e.g. Mr. Smith)">
+      <input id="staff-new-user" placeholder="Username (e.g. smith)">
+      <input id="staff-new-pin" placeholder="Passcode" inputmode="numeric">
+      <select id="staff-new-role">
+        <option value="teacher">Teacher</option>
+        <option value="admin">Admin (can manage staff)</option>
+      </select>
+      <button class="btn-confirm full" onclick="addStaff()">Add Account</button>
+    </div>
+
+    <div class="login-foot" style="text-align:left;margin-top:16px">
+      Note: a built-in <strong>admin</strong> recovery account always works (set in code) so you can't be locked out. Change its passcode in the file for real security.
+    </div>
+
+    <div class="modal-actions" style="margin-top:18px">
+      <button class="btn-cancel" onclick="closeStaffModal()">Close</button>
+    </div>
+  `;
+}
+
+window.addStaff = async () => {
+  const name = document.getElementById("staff-new-name").value.trim();
+  const u    = document.getElementById("staff-new-user").value.trim().toLowerCase();
+  const pin  = document.getElementById("staff-new-pin").value.trim();
+  const role = document.getElementById("staff-new-role").value;
+  if (!name || !u || !pin) { toast("Fill name, username and passcode", true); return; }
+  if (!/^[a-z0-9_]+$/.test(u)) { toast("Username: lowercase letters, numbers, underscore only", true); return; }
+  if (u === BOOTSTRAP_ADMIN.username) { toast("That username is reserved", true); return; }
+  if (staff[u]) { toast("That username already exists", true); return; }
+  try {
+    await set(ref(db, `staff/${u}`), { name, pin, role });
+    logAudit("staff_add", name, `@${u} (${role})`);
+    toast(`Added ${name}`);
+  } catch(e) { toast("Error: " + e.message, true); }
+};
+
+window.resetStaffPin = async (u) => {
+  const np = prompt(`New passcode for ${staff[u]?.name || u}:`);
+  if (np === null) return;
+  const pin = np.trim();
+  if (!pin) { toast("Passcode can't be empty", true); return; }
+  try {
+    await set(ref(db, `staff/${u}/pin`), pin);
+    logAudit("staff_reset_pin", staff[u]?.name || u);
+    toast("Passcode updated");
+  } catch(e) { toast("Error: " + e.message, true); }
+};
+
+window.removeStaff = async (u) => {
+  const mySession = getSession();
+  if (mySession && mySession.username === u) { toast("You can't remove your own account while logged in", true); return; }
+  if (!confirm(`Remove staff account "${staff[u]?.name || u}"? They will no longer be able to sign in.`)) return;
+  try {
+    await remove(ref(db, `staff/${u}`));
+    logAudit("staff_remove", staff[u]?.name || u);
+    toast("Staff account removed");
+  } catch(e) { toast("Error: " + e.message, true); }
+};
+
+// ============ STUDENT PORTAL ============
+function renderStudentPortal() {
+  const s = getSession();
+  if (!s || s.type !== "student") return;
+  const uid = s.uid;
+  const tAll = training[uid] || {};
+
+  const machineBlocks = MACHINES.map(m => {
+    const t = tAll[m] || {};
+    const status = t.status || "none";
+    const conf = {
+      none:     { icon: "○", head: "Not submitted", detail: "Upload your certificate for this machine." },
+      pending:  { icon: "⏳", head: "Awaiting approval", detail: `Submitted ${relTime(t.submittedAt)}.` },
+      approved: { icon: "✓", head: "Approved", detail: `Approved by ${escHTML(t.reviewedBy||"staff")} ${relTime(t.reviewedAt)}.` },
+      denied:   { icon: "✕", head: "Not approved", detail: `${t.note ? "Reason: " + escHTML(t.note) + ". " : ""}Please re-upload.` }
+    }[status];
+    const access = uids[m]?.[uid] === true;
+    return `<div class="sp-machine-block">
+      <div class="sp-status-row ${status}">
+        <div class="sp-status-icon ${status}">${conf.icon}</div>
+        <div class="sp-status-text">
+          <div class="sp-status-head">${escHTML(label(m))} — ${conf.head}${access?` · ✓ access enabled`:``}</div>
+          <div class="sp-status-detail">${conf.detail}</div>
+        </div>
+      </div>
+      ${status !== "approved"
+        ? `<button class="sp-btn secondary" onclick="uploadCertFor('${m}')" style="margin-top:10px">${status==='none'?'Upload':'Replace'} certificate for ${escHTML(label(m))}</button>`
+        : ``}
+    </div>`;
+  }).join("");
+
+  document.getElementById("studentPortalBody").innerHTML = `
+    <div class="sp-greeting">Hi ${escHTML(nameFor(uid) || "there")} 👋</div>
+    <div class="sp-sub">Card UID: ${escHTML(uid)}</div>
+
+    <div class="sp-card">
+      <div class="sp-card-title">OnGuard Training — by Machine</div>
+      <div class="sp-status-detail" style="margin-bottom:16px">Upload your training certificate for <strong>each machine</strong> you need to use. Your teacher reviews and approves each one separately.</div>
+      ${machineBlocks}
+      <div id="spPreviewArea"></div>
+    </div>
+  `;
+}
+
+// Compress an image file to a small JPEG data URL, then return it.
+function compressImage(file, maxDim = 1100, quality = 0.7) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("Could not read file"));
+    reader.onload = e => {
+      const img = new Image();
+      img.onerror = () => reject(new Error("Could not load image"));
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > height && width > maxDim) { height = height * maxDim / width; width = maxDim; }
+        else if (height > maxDim) { width = width * maxDim / height; height = maxDim; }
+        const canvas = document.createElement("canvas");
+        canvas.width = width; canvas.height = height;
+        canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+let pendingCertDataUrl = null;
+let pendingCertMachine = null;
+window.uploadCertFor = (machine) => {
+  pendingCertMachine = machine;
+  document.getElementById("certFileInput").click();
+};
+window.onCertSelected = async (file) => {
+  if (!file) return;
+  if (!file.type.startsWith("image/")) { toast("Please choose an image (photo or screenshot)", true); return; }
+  if (!pendingCertMachine) { toast("Pick which machine first", true); return; }
+  try {
+    toast("Processing image…");
+    pendingCertDataUrl = await compressImage(file);
+    document.getElementById("certFileInput").value = "";
+    const sizeKB = Math.round(pendingCertDataUrl.length * 0.75 / 1024);
+    const area = document.getElementById("spPreviewArea");
+    area.innerHTML = `
+      <div class="sp-card" style="margin-top:16px;border-color:var(--accent)">
+        <div class="sp-card-title">Confirm certificate for ${escHTML(label(pendingCertMachine))}</div>
+        <img class="sp-preview-img" src="${pendingCertDataUrl}">
+        <div style="margin-top:12px">
+          <button class="sp-btn" onclick="submitCert()">Submit for ${escHTML(label(pendingCertMachine))}</button>
+          <button class="sp-btn secondary" onclick="pendingCertDataUrl=null;pendingCertMachine=null;renderStudentPortal()" style="margin-left:8px">Cancel</button>
+        </div>
+        <div class="sp-upload-hint" style="margin-top:8px">Image size: ~${sizeKB} KB</div>
+      </div>`;
+    area.scrollIntoView({ behavior: "smooth", block: "center" });
+  } catch(e) { toast("Error: " + e.message, true); }
+};
+
+window.submitCert = async () => {
+  const s = getSession();
+  if (!s || s.type !== "student" || !pendingCertDataUrl || !pendingCertMachine) return;
+  const uid = s.uid, m = pendingCertMachine;
+  try {
+    await set(ref(db, `trainingCerts/${uid}/${m}`), pendingCertDataUrl);
+    await set(ref(db, `training/${uid}/${m}`), {
+      status: "pending",
+      submittedAt: new Date().toISOString(),
+      name: nameFor(uid) || uid
+    });
+    logAudit("training_submit", nameFor(uid) || uid, `${uid} · ${label(m)}`);
+    pendingCertDataUrl = null; pendingCertMachine = null;
+    toast(`Certificate submitted for ${label(m)}`);
+    renderStudentPortal();
+  } catch(e) { toast("Error: " + e.message, true); }
+};
+
+// ============ TRAINING APPROVALS (admin/teacher) ============
+// Build a flat list of { uid, machine, t } across all students and machines.
+function trainingEntries() {
+  const out = [];
+  Object.keys(training).forEach(uid => {
+    const byM = training[uid];
+    if (!byM || typeof byM !== "object") return;
+    Object.keys(byM).forEach(m => {
+      if (!MACHINES.includes(m)) return;
+      out.push({ uid, machine: m, t: byM[m] || {} });
+    });
+  });
+  return out;
+}
+function updateTrainingBadge() {
+  const pending = trainingEntries().filter(e => e.t.status === "pending").length;
+  const badge = document.getElementById("trainingTabBadge");
+  if (!badge) return;
+  if (pending > 0) { badge.textContent = pending; badge.style.display = ""; }
+  else badge.style.display = "none";
+}
+
+function renderTraining() {
+  const el = document.getElementById("tabContent");
+  let rows = trainingEntries();
+  const order = { pending: 0, denied: 1, approved: 2, none: 3 };
+  rows.sort((a, b) => {
+    const oa = order[a.t.status] ?? 9, ob = order[b.t.status] ?? 9;
+    if (oa !== ob) return oa - ob;
+    return (b.t.submittedAt || "").localeCompare(a.t.submittedAt || "");
+  });
+
+  if (!rows.length) {
+    el.innerHTML = `<div class="section-empty">No training submissions yet. Students upload a certificate per machine from the Student Portal (log in with their card UID).</div>`;
+    return;
+  }
+
+  el.innerHTML = `<div class="training-body">${rows.map(({ uid, machine, t }) => {
+    const status = t.status || "none";
+    const cleared = isTrainingClearedFor(uid, machine);
+    const overridden = trainingOverride[uid]?.[machine] === true;
+    return `<div class="training-row">
+      <div class="training-info">
+        <div class="training-name">${escHTML(nameFor(uid) || t.name || uid)} · <span style="color:var(--accent)">${escHTML(label(machine))}</span>
+          ${overridden ? `<span class="training-uid-tag ovr">override</span>` : (cleared ? `<span class="training-uid-tag ok">cleared</span>` : `<span class="training-uid-tag no">no access</span>`)}
+        </div>
+        <div class="training-meta">${escHTML(uid)} · ${status==='pending'?`submitted ${relTime(t.submittedAt)}`:status==='approved'?`approved by ${escHTML(t.reviewedBy||'?')} ${relTime(t.reviewedAt)}`:status==='denied'?`denied ${relTime(t.reviewedAt)}`:'no submission'}</div>
+      </div>
+      <span class="training-badge ${status}">${status}</span>
+      <div class="training-actions">
+        <button class="t-btn view" onclick="viewCert('${escAttr(uid)}','${machine}')">View cert</button>
+        ${status!=='approved' ? `<button class="t-btn approve" onclick="approveTraining('${escAttr(uid)}','${machine}')">Approve</button>` : `<button class="t-btn deny" onclick="revokeTraining('${escAttr(uid)}','${machine}')">Revoke</button>`}
+        ${status==='pending' ? `<button class="t-btn deny" onclick="denyTraining('${escAttr(uid)}','${machine}')">Deny</button>` : ``}
+      </div>
+    </div>`;
+  }).join("")}</div>`;
+}
+
+window.viewCert = async (uid, machine) => {
+  document.getElementById("certModalBody").innerHTML = `<div class="modal-title">Certificate — ${escHTML(nameFor(uid)||uid)} · ${escHTML(label(machine))}</div><div class="section-empty">Loading…</div>`;
+  document.getElementById("certModal").classList.add("open");
+  try {
+    const snap = await get(ref(db, `trainingCerts/${uid}/${machine}`));
+    if (!snap.exists()) {
+      document.getElementById("certModalBody").innerHTML = `<div class="modal-title">Certificate</div><div class="section-empty">No certificate image found for this submission.</div><div class="modal-actions"><button class="btn-cancel" onclick="closeCertModal()">Close</button></div>`;
+      return;
+    }
+    const t = training[uid]?.[machine] || {};
+    document.getElementById("certModalBody").innerHTML = `
+      <div class="modal-title">Certificate — ${escHTML(nameFor(uid)||uid)} · ${escHTML(label(machine))}</div>
+      <div class="modal-body" style="margin-bottom:14px">Status: <strong>${t.status||'?'}</strong> · UID ${escHTML(uid)}</div>
+      <img class="cert-viewer-img" src="${snap.val()}">
+      <div class="modal-actions" style="margin-top:18px">
+        <button class="btn-cancel" onclick="closeCertModal()">Close</button>
+        ${t.status!=='approved' ? `<button class="btn-confirm" onclick="approveTraining('${escAttr(uid)}','${machine}');closeCertModal()">Approve for ${escHTML(label(machine))}</button>` : ``}
+        ${t.status==='pending' ? `<button class="btn-confirm-delete" onclick="denyTraining('${escAttr(uid)}','${machine}');closeCertModal()">Deny</button>` : ``}
+      </div>`;
+  } catch(e) {
+    document.getElementById("certModalBody").innerHTML = `<div class="modal-title">Certificate</div><div class="section-empty">Error loading: ${escHTML(e.message)}</div><div class="modal-actions"><button class="btn-cancel" onclick="closeCertModal()">Close</button></div>`;
+  }
+};
+window.closeCertModal = () => document.getElementById("certModal").classList.remove("open");
+document.getElementById("certModal").addEventListener("click", e => { if (e.target.id === "certModal") closeCertModal(); });
+
+window.approveTraining = async (uid, machine) => {
+  try {
+    await update(ref(db, `training/${uid}/${machine}`), {
+      status: "approved", reviewedBy: who(), reviewedAt: new Date().toISOString(), note: ""
+    });
+    logAudit("training_approve", nameFor(uid) || uid, label(machine));
+    toast(`Approved ${nameFor(uid) || uid} for ${label(machine)}`);
+  } catch(e) { toast("Error: " + e.message, true); }
+};
+window.denyTraining = async (uid, machine) => {
+  const note = prompt(`Reason for denying ${nameFor(uid)||uid} on ${label(machine)} (optional):`) || "";
+  try {
+    await update(ref(db, `training/${uid}/${machine}`), {
+      status: "denied", reviewedBy: who(), reviewedAt: new Date().toISOString(), note: note.trim()
+    });
+    logAudit("training_deny", nameFor(uid) || uid, `${label(machine)} — ${note.trim()}`);
+    toast(`Denied ${nameFor(uid) || uid} for ${label(machine)}`);
+  } catch(e) { toast("Error: " + e.message, true); }
+};
+window.revokeTraining = async (uid, machine) => {
+  if (!confirm(`Revoke ${nameFor(uid)||uid}'s approval for ${label(machine)}?`)) return;
+  try {
+    await update(ref(db, `training/${uid}/${machine}`), {
+      status: "denied", reviewedBy: who(), reviewedAt: new Date().toISOString(), note: "Approval revoked"
+    });
+    logAudit("training_revoke", nameFor(uid) || uid, label(machine));
+    toast(`Revoked ${nameFor(uid) || uid} for ${label(machine)}`);
+  } catch(e) { toast("Error: " + e.message, true); }
+};
+
+// Teacher override — allow access to ONE machine without approved training
+window.toggleTrainingOverride = async (uid, machine) => {
+  const cur = trainingOverride[uid]?.[machine] === true;
+  try {
+    if (cur) { await remove(ref(db, `trainingOverride/${uid}/${machine}`)); logAudit("training_override_off", nameFor(uid)||uid, label(machine)); toast(`Override removed for ${label(machine)}`); }
+    else     { await set(ref(db, `trainingOverride/${uid}/${machine}`), true); logAudit("training_override_on", nameFor(uid)||uid, label(machine)); toast(`Override on — ${label(machine)} access allowed without training`); }
+  } catch(e) { toast("Error: " + e.message, true); }
+};
+
+// ============ QUICK ADD PICKER + FILTERS ============
+function renderQuickAddPick() {
+  const el = document.getElementById("qaMachinePick");
+  el.innerHTML = MACHINES.map(m =>
+    `<label><input type="checkbox" data-m="${m}" checked><span>${escHTML(label(m))}</span></label>`
+  ).join("");
+}
+function renderFilters() {
+  const btns = [
+    `<button class="filter-btn ${logFilter==='all'?'active':''}" onclick="setFilter('all',this)">All</button>`,
+    ...MACHINES.map(m =>
+      `<button class="filter-btn ${logFilter===m?'active':''}" onclick="setFilter('${m}',this)">${escHTML(label(m))}</button>`
+    )
+  ];
+  const filterRowEl = document.getElementById("filterRow_main");
+  if (filterRowEl) filterRowEl.innerHTML = btns.join("");
+}
+function renderClearOpts() {
+  const el = document.getElementById("clearOpts");
+  el.innerHTML = `
+    <label class="clear-opt"><input type="radio" name="clearOpt" value="all" checked><div><div class="clear-opt-label">All logs</div><div class="clear-opt-sub">Removes entire /logs path</div></div></label>
+    ${MACHINES.map(m => `<label class="clear-opt"><input type="radio" name="clearOpt" value="${m}"><div><div class="clear-opt-label">${escHTML(label(m))} only</div><div class="clear-opt-sub">Removes logs where machine = ${m}</div></div></label>`).join("")}
+  `;
+}
+
+// ============ MACHINE CARDS ============
+function renderMachines() {
+  const grid = document.getElementById("machinesGrid");
+  grid.innerHTML = "";
+  MACHINES.forEach(machine => {
+    let entries = Object.entries(uids[machine] || {});
+    if (searchQuery) entries = entries.filter(([uid]) => matchesSearch(uid));
+    const count = Object.keys(uids[machine] || {}).length;
+    const shown = entries.length;
+    const hb    = heartbeatStatus(machine);
+    const inMaint = !!maintenance[machine];
+    const tp      = !!twoPerson[machine];
+
+    const rows = !shown
+      ? `<div class="empty-state">${searchQuery ? "No matches" : "No students registered"}</div>`
+      : entries.map(([uid, granted]) => {
+          const person = nameFor(uid);
+          // Show one tag per group — a user can belong to multiple
+          const groupTag = findUserGroups(uid).map(g => `<span class="uid-tag">${escHTML(g)}</span>`).join("");
+          const supTag   = supervisors[uid] ? `<span class="uid-tag sup" title="Supervisor card — can authorise two-person machines">★ SUP</span>` : "";
+          // Training status tag — for THIS machine
+          const tStatus  = training[uid]?.[machine]?.status;
+          let trainTag = "";
+          if (trainingOverride[uid]?.[machine]) trainTag = `<span class="uid-tag" style="color:var(--purple);background:rgba(184,141,255,.1);border-color:rgba(184,141,255,.3)" title="Access allowed via teacher override for this machine">⚠ override</span>`;
+          else if (tStatus === "approved")       trainTag = "";
+          else if (tStatus === "pending")        trainTag = `<span class="uid-tag" style="color:var(--amber);background:rgba(227,167,64,.1);border-color:rgba(227,167,64,.35)" title="Training for this machine awaiting approval">⏳ training</span>`;
+          else                                    trainTag = `<span class="uid-tag" style="color:var(--red);background:rgba(240,78,91,.1);border-color:rgba(240,78,91,.3)" title="No approved OnGuard training for this machine">⚠ no training</span>`;
+          return `
+            <div class="uid-row">
+              ${avatarHTML(uid, person)}
+              <div class="uid-info">
+                <div class="uid-person" onclick="editUserName('${uid}', this)" title="Click to edit name">${escHTML(person || uid)}${supTag}${trainTag}${groupTag}</div>
+                ${person ? `<div class="uid-hex">${escHTML(uid)}</div>` : ""}
+              </div>
+              <label class="toggle-wrap" title="${granted?"Revoke":"Grant"} access">
+                <input type="checkbox" ${granted?"checked":""}
+                  onchange="toggleUID('${machine}','${uid}',this.checked)">
+                <span class="toggle-track"></span>
+              </label>
+              <button class="btn-delete" onclick="openModal('${machine}','${uid}')">×</button>
+            </div>`;
+        }).join("");
+
+    const card = document.createElement("div");
+    card.className = "machine-card" + (inMaint ? " maintenance" : "");
+    card.innerHTML = `
+      <div class="machine-header">
+        <div class="machine-header-left">
+          <div class="machine-name" onclick="editMachineName('${machine}', this)" title="Click to rename">${escHTML(label(machine))}</div>
+        </div>
+        <div class="machine-flags">
+          <button class="flag-btn ${inMaint?'on-amber':''}" onclick="toggleMaintenance('${machine}')" title="${inMaint?'Clear maintenance':'Mark under maintenance'}">🔧</button>
+          <button class="flag-btn ${tp?'on-purple':''}" onclick="toggleTwoPerson('${machine}')" title="${tp?'Disable two-person rule':'Require supervisor card'}">👥</button>
+        </div>
+        <div class="machine-hb" title="${hb.text}">
+          <span class="hb-dot ${hb.cls}"></span>
+          <span>${hb.text}</span>
+        </div>
+        <div class="machine-count">${count} student${count!==1?"s":""}</div>
+      </div>
+      <div class="machine-body">${rows}</div>
+      <div class="add-uid-form">
+        <input class="input-uid" id="inp-uid-${machine}" placeholder="UID e.g. C761F803" maxlength="12" onkeydown="if(event.key==='Enter')addUID('${machine}')">
+        <input class="input-name" id="inp-name-${machine}" placeholder="Person's name" onkeydown="if(event.key==='Enter')addUID('${machine}')">
+        <button class="btn-add" onclick="addUID('${machine}')">+ Add</button>
+      </div>`;
+    grid.appendChild(card);
+  });
+}
+
+function findUserGroup(uid) {
+  for (const gid in groups) {
+    const g = groups[gid];
+    if (g.members && g.members[uid]) return g.name || gid;
+  }
+  return null;
+}
+
+// Returns ALL groups a user is in — one user can belong to multiple groups.
+function findUserGroups(uid) {
+  const out = [];
+  for (const gid in groups) {
+    const g = groups[gid];
+    if (g && g.members && g.members[uid]) out.push(g.name || gid);
+  }
+  return out;
+}
+
+// ============ FILTERED LOGS ============
+function filteredLogs() {
+  return logs.filter(s => {
+    if (logFilter !== "all" && s.machine !== logFilter) return false;
+    if (!inTimeRange(s.timestamp))                       return false;
+    if (searchQuery && !matchesSearch(s.uid))            return false;
+    return true;
+  });
+}
+
+// ============ TAB RENDERING ============
+function renderBottomActions() {
+  const el = document.getElementById("bottomActions");
+  if (activeTab === "log" || activeTab === "usage" || activeTab === "charts") {
+    el.innerHTML = `
+      <div class="filter-group">
+        <span class="filter-group-label">Machine</span>
+        <div class="filter-row" id="filterRow_main"></div>
+      </div>
+      <div class="filter-group">
+        <span class="filter-group-label">Range</span>
+        <div class="filter-row" id="rangeRow">
+          <button class="filter-btn ${timeRange==='all'?'active':''}" onclick="setRange('all',this)">All</button>
+          <button class="filter-btn ${timeRange==='today'?'active':''}" onclick="setRange('today',this)">Today</button>
+          <button class="filter-btn ${timeRange==='week'?'active':''}" onclick="setRange('week',this)">7d</button>
+          <button class="filter-btn ${timeRange==='month'?'active':''}" onclick="setRange('month',this)">30d</button>
+        </div>
+      </div>
+      ${activeTab === "log" ? `<button class="btn-export" onclick="exportCSV()" title="Export visible logs to CSV">↓ Export CSV</button>` : ""}
+      ${activeTab === "log" ? `<button class="btn-clear-logs" onclick="openClearModal()">⌫ Clear Logs</button>` : ""}
+    `;
+    renderFilters();
+  } else if (activeTab === "audit") {
+    el.innerHTML = `
+      <div class="filter-group">
+        <span class="filter-group-label">Action</span>
+        <div class="filter-row" id="auditFilterRow">
+          ${["all","grant_access","revoke_access","add_user","delete_user","rename_user","rename_machine","group","maintenance","schedule","emergency","induction","supervisor"].map(a =>
+            `<button class="filter-btn ${auditFilterAction===a?'active':''}" onclick="setAuditFilter('${a}',this)">${a==='all'?'All':a.replace(/_/g,' ')}</button>`
+          ).join("")}
+        </div>
+      </div>
+      <div class="filter-group">
+        <span class="filter-group-label">Range</span>
+        <div class="filter-row">
+          <button class="filter-btn ${auditTimeRange==='all'?'active':''}" onclick="setAuditRange('all',this)">All</button>
+          <button class="filter-btn ${auditTimeRange==='today'?'active':''}" onclick="setAuditRange('today',this)">Today</button>
+          <button class="filter-btn ${auditTimeRange==='week'?'active':''}" onclick="setAuditRange('week',this)">7d</button>
+          <button class="filter-btn ${auditTimeRange==='month'?'active':''}" onclick="setAuditRange('month',this)">30d</button>
+        </div>
+      </div>
+      <div class="search-wrap" style="min-width:180px;max-width:260px;flex:1">
+        <span class="search-icon">⌕</span>
+        <input class="search-input" placeholder="Search audit (by, target, detail)..." oninput="setAuditSearch(this.value)" value="${escAttr(auditSearch)}">
+      </div>
+    `;
+  } else {
+    el.innerHTML = "";
+  }
+}
+
+function renderTab() {
+  renderBottomActions();
+  if (activeTab === "log")     renderLog();
+  else if (activeTab === "usage")  renderUsage();
+  else if (activeTab === "charts") renderCharts();
+  else if (activeTab === "groups") renderGroups();
+  else if (activeTab === "training") renderTraining();
+  else if (activeTab === "audit")  renderAudit();
+}
+
+function renderAll() {
+  renderQuickAddPick();
+  renderFilters();
+  renderClearOpts();
+  renderMachines();
+  renderTab();
+  updateStats();
+  renderScheduleSummary();
+}
+
+// ============ ACTIVITY LOG ============
+function renderLog() {
+  const el = document.getElementById("tabContent");
+  let entries = filteredLogs();
+
+  entries.sort((a,b) => {
+    const dir = sortDir === "asc" ? 1 : -1;
+    let av, bv;
+    switch (sortField) {
+      case "person":  av = (names[a.uid]||a.uid).toLowerCase(); bv = (names[b.uid]||b.uid).toLowerCase(); break;
+      case "machine": av = label(a.machine)||""; bv = label(b.machine)||""; break;
+      case "result":  av = a.result; bv = b.result; break;
+      case "time":
+      default:        av = Date.parse(a.timestamp)||0; bv = Date.parse(b.timestamp)||0;
+    }
+    return av < bv ? -dir : av > bv ? dir : 0;
+  });
+
+  entries = entries.slice(0, 150);
+
+  if (!entries.length) {
+    el.innerHTML = `<div class="section-empty">No activity matches current filters</div>`;
+    return;
+  }
+
+  const arr = sortDir === "asc" ? "▲" : "▼";
+  const sortCls = f => sortField === f ? "sort-active" : "";
+  const sortArr = f => sortField === f ? `<span class="sort-arr">${arr}</span>` : `<span class="sort-arr">▼</span>`;
+
+  el.innerHTML = `
+    <table class="log-table">
+      <thead><tr>
+        <th class="sortable ${sortCls('person')}"  onclick="setSort('person')">Person${sortArr('person')}</th>
+        <th class="sortable ${sortCls('machine')}" onclick="setSort('machine')">Machine${sortArr('machine')}</th>
+        <th class="sortable ${sortCls('result')}"  onclick="setSort('result')">Result${sortArr('result')}</th>
+        <th class="sortable ${sortCls('time')}"    onclick="setSort('time')">Time${sortArr('time')}</th>
+      </tr></thead>
+      <tbody>${entries.map(s => {
+        const person  = nameFor(s.uid);
+        const badge   = s.result === "GRANTED"
+          ? `<span class="badge badge-granted">Granted</span>`
+          : `<span class="badge badge-denied">Denied</span>`;
+        const machine = s.machine
+          ? `<span class="log-machine">${escHTML(label(s.machine))}</span>`
+          : `<span style="color:var(--muted);font-family:var(--mono);font-size:11px">—</span>`;
+        return `<tr>
+          <td>
+            <div class="log-person-wrap">
+              ${avatarHTML(s.uid, person)}
+              <div>
+                <div class="log-person">${escHTML(person || s.uid)}</div>
+                ${person ? `<div class="log-uid-sub">${escHTML(s.uid)}</div>` : ""}
+              </div>
+            </div>
+          </td>
+          <td>${machine}</td>
+          <td>${badge}</td>
+          <td>
+            <div class="log-time" title="${escAttr(s.timestamp || '')}">${escHTML(s.timestamp || "—")}</div>
+            <div class="log-time-rel">${relTime(s.timestamp)}</div>
+          </td>
+        </tr>`;
+      }).join("")}</tbody>
+    </table>`;
+}
+
+// ============ USAGE BY PERSON ============
+function renderUsage() {
+  const el      = document.getElementById("tabContent");
+  const stats   = {};
+  const entries = filteredLogs();
+
+  entries.forEach(s => {
+    if (!stats[s.uid]) stats[s.uid] = { granted:0, denied:0, last:"" };
+    if (s.result === "GRANTED") stats[s.uid].granted++;
+    else                        stats[s.uid].denied++;
+    if (!stats[s.uid].last) stats[s.uid].last = s.timestamp;
+  });
+
+  const keys = Object.keys(stats);
+  if (!keys.length) {
+    el.innerHTML = `<div class="section-empty">No usage data matches current filters</div>`;
+    return;
+  }
+  keys.sort((a,b) => (stats[b].granted + stats[b].denied) - (stats[a].granted + stats[a].denied));
+
+  el.innerHTML = `<div class="usage-grid">${keys.map(uid => {
+    const s = stats[uid];
+    const total = s.granted + s.denied;
+    const person = nameFor(uid);
+    return `<div class="usage-card">
+      <div class="usage-card-top">
+        ${avatarHTML(uid, person)}
+        <div class="usage-card-body">
+          <div class="usage-person">${escHTML(person || uid)}</div>
+          ${person ? `<div class="usage-uid-sub">${escHTML(uid)}</div>` : `<div class="usage-uid-sub">No name set</div>`}
+        </div>
+      </div>
+      <div class="usage-stats">
+        <div class="usage-stat g"><span class="num">${s.granted}</span><span class="lbl">Granted</span></div>
+        <div class="usage-stat r"><span class="num">${s.denied}</span><span class="lbl">Denied</span></div>
+        <div class="usage-stat"><span class="num" style="color:var(--accent)">${total}</span><span class="lbl">Total</span></div>
+      </div>
+      <div class="usage-last">Last seen: ${s.last ? `${escHTML(s.last)} (${relTime(s.last)})` : "—"}</div>
+    </div>`;
+  }).join("")}</div>`;
+}
+
+// ============ ANALYTICS (charts + heatmap + anomalies) ============
+function chartOpts(extra = {}) {
+  const isLight = document.documentElement.getAttribute("data-theme") === "light";
+  const tickColor = isLight ? "#48536a" : "#4a5568";
+  const textColor = isLight ? "#1a2030" : "#c8d0e0";
+  const gridColor = isLight ? "#dfe4ec" : "#1e2330";
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { labels: { color: textColor, font: { family: "'IBM Plex Mono', monospace", size: 10 } } },
+      tooltip: { backgroundColor: isLight?"#fff":"#181c23", borderColor: isLight?"#c8d0dc":"#2a3040", borderWidth: 1, titleColor: textColor, bodyColor: textColor }
+    },
+    scales: extra.noScales ? {} : {
+      x: { ticks: { color: tickColor, font: { family: "'IBM Plex Mono', monospace", size: 10 } }, grid: { color: gridColor } },
+      y: { ticks: { color: tickColor, font: { family: "'IBM Plex Mono', monospace", size: 10 } }, grid: { color: gridColor }, beginAtZero: true, precision: 0 }
+    },
+    ...extra.overrides
+  };
+}
+
+function renderCharts() {
+  const el = document.getElementById("tabContent");
+  Object.values(chartInstances).forEach(c => c.destroy());
+  chartInstances = {};
+
+  if (typeof Chart === "undefined") {
+    el.innerHTML = `<div class="section-empty">Chart library failed to load. Check your internet connection.</div>`;
+    return;
+  }
+
+  const rows = filteredLogs();
+
+  // Empty state — show friendly placeholder instead of broken-looking empty charts
+  if (!rows.length) {
+    const hint = (logFilter !== "all" || timeRange !== "all" || searchQuery)
+      ? "Try widening the machine / range / search filters above."
+      : "Charts will populate once your ESP32 machines log scans to Firebase.";
+    el.innerHTML = `
+      <div class="section-empty" style="padding:60px 24px">
+        <div style="font-size:36px;margin-bottom:14px;opacity:.5">📊</div>
+        <div style="font-size:13px;color:var(--text);margin-bottom:6px">No scan data to chart yet</div>
+        <div style="font-size:11px;color:var(--muted)">${hint}</div>
+      </div>`;
+    return;
+  }
+
+  el.innerHTML = `
+    <div class="charts-grid">
+      <div class="chart-card"><div class="chart-title">Scans — Last 14 Days</div><canvas id="chartDays"></canvas></div>
+      <div class="chart-card"><div class="chart-title">Granted vs Denied</div><canvas id="chartGD"></canvas></div>
+      <div class="chart-card"><div class="chart-title">Scans by Machine</div><canvas id="chartMachine"></canvas></div>
+      <div class="chart-card"><div class="chart-title">Scans by Hour of Day</div><canvas id="chartHour"></canvas></div>
+      <div class="chart-card wide"><div class="chart-title">Activity Heatmap (Last 12 Weeks)</div><div id="heatmap"></div></div>
+      <div class="chart-card wide"><div class="chart-title">⚠ Anomalies — Cards Scanning Rapidly (>5 in 60s)</div><div id="anomList"></div></div>
+    </div>`;
+
+  // 1) Days
+  const days = {}; const dayLabels = [];
+  for (let i = 13; i >= 0; i--) {
+    const d = new Date(Date.now() - i * 86400000);
+    const k = d.toISOString().slice(0,10);
+    days[k] = 0; dayLabels.push(k.slice(5));
+  }
+  rows.forEach(s => {
+    const t = Date.parse(s.timestamp); if (isNaN(t)) return;
+    const k = new Date(t).toISOString().slice(0,10);
+    if (k in days) days[k]++;
+  });
+  chartInstances.days = new Chart(document.getElementById("chartDays"), {
+    type: "bar",
+    data: { labels: dayLabels, datasets: [{ label: "Scans", data: Object.values(days), backgroundColor: "rgba(0,212,255,.55)", borderColor: "#00d4ff", borderWidth: 1, borderRadius: 3 }] },
+    options: chartOpts({ overrides: { plugins: { legend: { display: false } } } })
+  });
+
+  // 2) GD
+  let g = 0, d = 0; rows.forEach(s => s.result === "GRANTED" ? g++ : d++);
+  chartInstances.gd = new Chart(document.getElementById("chartGD"), {
+    type: "doughnut",
+    data: { labels: ["Granted","Denied"], datasets: [{ data: [g, d], backgroundColor: ["rgba(0,232,122,.7)","rgba(255,59,92,.7)"], borderColor: ["#00e87a","#ff3b5c"], borderWidth: 1 }] },
+    options: chartOpts({ noScales: true })
+  });
+
+  // 3) Machine
+  const byM = { machine_1:0, machine_2:0, machine_3:0 };
+  rows.forEach(s => { if (s.machine && byM[s.machine] !== undefined) byM[s.machine]++; });
+  chartInstances.machine = new Chart(document.getElementById("chartMachine"), {
+    type: "bar",
+    data: { labels: MACHINES.map(m => label(m)), datasets: [{ label: "Scans", data: MACHINES.map(m => byM[m]), backgroundColor: ["rgba(0,212,255,.5)","rgba(0,232,122,.5)","rgba(255,176,32,.5)"], borderColor: ["#00d4ff","#00e87a","#ffb020"], borderWidth: 1, borderRadius: 3 }] },
+    options: chartOpts({ overrides: { indexAxis: "y", plugins: { legend: { display: false } } } })
+  });
+
+  // 4) Hour
+  const hours = Array(24).fill(0);
+  rows.forEach(s => { const t = Date.parse(s.timestamp); if (!isNaN(t)) hours[new Date(t).getHours()]++; });
+  chartInstances.hour = new Chart(document.getElementById("chartHour"), {
+    type: "bar",
+    data: { labels: hours.map((_,i) => String(i).padStart(2,"0")), datasets: [{ label: "Scans", data: hours, backgroundColor: "rgba(255,176,32,.5)", borderColor: "#ffb020", borderWidth: 1, borderRadius: 2 }] },
+    options: chartOpts({ overrides: { plugins: { legend: { display: false } } } })
+  });
+
+  // 5) Heatmap (12 weeks × 7 days)
+  renderHeatmap(rows);
+
+  // 6) Anomalies
+  renderAnomalies();
+}
+
+function renderHeatmap(rows) {
+  const weeks = 12;
+  const dayKey = d => d.toISOString().slice(0,10);
+  const today = new Date(); today.setHours(0,0,0,0);
+  const dayOfWeek = today.getDay(); // 0=Sun
+  // Start at "Monday weeks ago" — use today's day-of-week to align
+  const grid = {};
+  for (let w = weeks - 1; w >= 0; w--) {
+    for (let d = 0; d < 7; d++) {
+      const offset = w * 7 + (6 - d) + dayOfWeek;
+      const date = new Date(today.getTime() - offset * 86400000);
+      grid[dayKey(date)] = 0;
+    }
+  }
+  rows.forEach(s => {
+    const t = Date.parse(s.timestamp); if (isNaN(t)) return;
+    const k = new Date(t).toISOString().slice(0,10);
+    if (k in grid) grid[k]++;
+  });
+  const max = Math.max(1, ...Object.values(grid));
+  const colorFor = v => {
+    if (v === 0) return "var(--border)";
+    const intensity = Math.min(1, v / max);
+    const a = 0.2 + intensity * 0.8;
+    return `rgba(0,212,255,${a})`;
+  };
+
+  // Build columns (oldest → newest) of 7 day cells
+  const dates = Object.keys(grid).sort();
+  const cols = [];
+  for (let i = 0; i < dates.length; i += 7) cols.push(dates.slice(i, i+7));
+  let html = `<div class="heatmap">`;
+  cols.forEach(col => {
+    html += `<div class="heatmap-col">${col.map(d => {
+      const v = grid[d];
+      return `<div class="heatmap-cell" style="background:${colorFor(v)}" title="${d}: ${v} scan${v!==1?'s':''}"></div>`;
+    }).join("")}</div>`;
+  });
+  html += `</div>
+    <div class="heatmap-legend">
+      <span>Less</span>
+      <div class="heatmap-legend-cells">
+        ${[0,0.25,0.5,0.75,1].map(p => `<div class="heatmap-cell" style="background:${p===0?'var(--border)':`rgba(0,212,255,${0.2+p*0.8})`}"></div>`).join("")}
+      </div>
+      <span>More</span>
+    </div>`;
+  document.getElementById("heatmap").innerHTML = html;
+}
+
+function renderAnomalies() {
+  // Find UIDs scanning >5 times within any 60s window (sliding)
+  const byUid = {};
+  filteredLogs().forEach(s => {
+    const t = Date.parse(s.timestamp); if (isNaN(t)) return;
+    (byUid[s.uid] = byUid[s.uid] || []).push(t);
+  });
+  const flagged = [];
+  Object.entries(byUid).forEach(([uid, timestamps]) => {
+    timestamps.sort((a,b) => a-b);
+    let maxBurst = 0;
+    for (let i = 0; i < timestamps.length; i++) {
+      let j = i;
+      while (j < timestamps.length && timestamps[j] - timestamps[i] <= 60000) j++;
+      maxBurst = Math.max(maxBurst, j - i);
+    }
+    if (maxBurst > 5) flagged.push({ uid, burst: maxBurst, total: timestamps.length });
+  });
+  flagged.sort((a,b) => b.burst - a.burst);
+  const el = document.getElementById("anomList");
+  if (!flagged.length) { el.innerHTML = `<div class="anom-empty">No anomalous scan patterns detected ✓</div>`; return; }
+  el.innerHTML = `<div class="anom-list">${flagged.map(f => `
+    <div class="anom-row">
+      <strong>${escHTML(nameFor(f.uid) || f.uid)}</strong>${nameFor(f.uid)?` (${escHTML(f.uid)})`:""} — peak <strong>${f.burst}</strong> scans in 60s · ${f.total} total scans in range. Possible card sharing or fault.
+    </div>
+  `).join("")}</div>`;
+}
+
+// ============ GROUPS ============
+function renderGroups() {
+  const el = document.getElementById("tabContent");
+  const groupKeys = Object.keys(groups);
+  el.innerHTML = `
+    <div class="groups-body">
+      <div class="group-create-form">
+        <input id="newGroupName" placeholder="New group name (e.g. Year 12 IndTech)" onkeydown="if(event.key==='Enter')createGroup()">
+        <button class="btn-add" onclick="createGroup()">+ Create Group</button>
+      </div>
+      ${groupKeys.length ? `<div class="groups-grid">${groupKeys.map(gid => renderGroupCard(gid)).join("")}</div>` : `<div class="section-empty">No groups yet. Create one above.</div>`}
+    </div>`;
+}
+function renderGroupCard(gid) {
+  const g = groups[gid] || {};
+  const memberKeys = Object.keys(g.members || {});
+  const sched = g.schedule || {};
+  const hasActiveSchedule = !!sched.enabled;
+  const dayNames = ["S","M","T","W","T","F","S"];
+  return `<div class="group-card">
+    <div class="group-card-head">
+      <div class="group-name" onclick="editGroupName('${gid}', this)" title="Click to rename">${escHTML(g.name || gid)}</div>
+      <button class="group-delete" onclick="deleteGroup('${gid}')">Delete</button>
+    </div>
+    <div class="sched-label-mini" style="margin-bottom:6px">Machines (click to toggle)</div>
+    <div class="group-machines">${MACHINES.map(m => {
+      const on = g.machines && g.machines[m];
+      return `<span class="group-machine-pill ${on?'':'off'}" onclick="toggleGroupMachine('${gid}','${m}')">${escHTML(label(m))}</span>`;
+    }).join("")}</div>
+    <div class="sched-label-mini" style="margin-top:10px;margin-bottom:6px">Members (${memberKeys.length})</div>
+    <div class="group-members-list">
+      ${memberKeys.length ? memberKeys.map(uid => `<span class="group-member-pill">${escHTML(nameFor(uid)||uid)}<span class="x" onclick="removeFromGroup('${gid}','${uid}')">×</span></span>`).join("") : `<span class="sched-label-mini">No members yet</span>`}
+    </div>
+    <div class="group-add-form">
+      <input placeholder="Add UID" id="ga-${gid}" onkeydown="if(event.key==='Enter')addToGroup('${gid}')">
+      <button onclick="addToGroup('${gid}')">+ Add</button>
+    </div>
+    <div class="group-schedule-wrap">
+      <button class="group-schedule-toggle" onclick="toggleGroupSchedule('${gid}')">
+        <span>⏱ Class schedule</span>
+        ${hasActiveSchedule ? `<span class="group-sched-active">${escHTML((sched.days||[]).map(i=>dayNames[i]).join(''))} ${escHTML(sched.from||'')}–${escHTML(sched.to||'')}</span>` : `<span class="group-sched-off">Not set</span>`}
+      </button>
+      <div class="group-schedule-editor" id="gs-${gid}" style="display:none">
+        <div class="gs-row">
+          <label class="gs-enabled-label">
+            <input type="checkbox" class="gs-enabled" ${sched.enabled?'checked':''}>
+            <span>Enforce schedule</span>
+          </label>
+        </div>
+        <div class="gs-row">
+          <span class="sched-label-mini">Days</span>
+          <div class="sched-days gs-days">
+            ${dayNames.map((d,i) => `<label><input type="checkbox" data-d="${i}" ${(sched.days||[]).includes(i)?'checked':''}><span>${d}</span></label>`).join('')}
+          </div>
+        </div>
+        <div class="gs-row">
+          <div class="sched-time-pair"><span class="sched-label-mini">From</span><input type="time" class="sched-time-input gs-from" value="${escAttr(sched.from||'08:00')}"></div>
+          <div class="sched-time-pair"><span class="sched-label-mini">To</span><input type="time" class="sched-time-input gs-to" value="${escAttr(sched.to||'15:30')}"></div>
+        </div>
+        <div class="gs-row gs-actions">
+          ${hasActiveSchedule ? `<button class="group-delete" onclick="clearGroupSchedule('${gid}')">Clear</button>` : ''}
+          <button class="btn-add" onclick="saveGroupSchedule('${gid}')">Save schedule</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+window.createGroup = async () => {
+  const v = document.getElementById("newGroupName").value.trim();
+  if (!v) { toast("Enter a group name", true); return; }
+  try {
+    const key = push(ref(db, "groups")).key;
+    await set(ref(db, `groups/${key}`), { name: v, machines: {}, members: {} });
+    logAudit("group_create", v);
+    toast(`Created group "${v}"`);
+    document.getElementById("newGroupName").value = "";
+  } catch(e) { toast("Error: " + e.message, true); }
+};
+window.deleteGroup = async (gid) => {
+  const g = groups[gid]; if (!g) return;
+  if (!confirm(`Delete group "${g.name}"? Members keep their direct access; only the group is removed.`)) return;
+  try { await remove(ref(db, `groups/${gid}`)); logAudit("group_delete", g.name); toast("Group deleted"); }
+  catch(e) { toast("Error: " + e.message, true); }
+};
+window.editGroupName = (gid, el) => {
+  if (el.querySelector("input")) return;
+  const orig = groups[gid]?.name || gid;
+  el.innerHTML = `<input class="machine-name-input" value="${escAttr(orig)}">`;
+  const inp = el.querySelector("input"); inp.focus(); inp.select();
+  let saved = false;
+  const save = async () => {
+    if (saved) return; saved = true;
+    const v = inp.value.trim();
+    if (v && v !== orig) {
+      await set(ref(db, `groups/${gid}/name`), v);
+      logAudit("group_rename", orig, `to "${v}"`);
+    }
+  };
+  inp.addEventListener("blur", save);
+  inp.addEventListener("keydown", e => { if (e.key==="Enter"){e.preventDefault();inp.blur();} if (e.key==="Escape"){saved=true;renderTab();} });
+};
+// Returns true if any OTHER group (not gid) grants this UID access to this machine.
+// Used to avoid revoking access when multiple groups overlap on the same machine.
+function userHasMachineViaOtherGroup(uid, machine, excludeGid) {
+  for (const gid in groups) {
+    if (gid === excludeGid) continue;
+    const g = groups[gid];
+    if (g && g.members && g.members[uid] && g.machines && g.machines[machine]) return true;
+  }
+  return false;
+}
+
+window.toggleGroupMachine = async (gid, machine) => {
+  const cur = groups[gid]?.machines?.[machine];
+  const newVal = !cur;
+  const members = Object.keys(groups[gid]?.members || {});
+  const updates = { [`groups/${gid}/machines/${machine}`]: newVal };
+  let granted = 0, revoked = 0, preserved = 0;
+  for (const uid of members) {
+    if (newVal) {
+      updates[`${machine}/${uid}`] = true;
+      granted++;
+    } else if (userHasMachineViaOtherGroup(uid, machine, gid)) {
+      // Another group still grants this machine to the user — leave access intact
+      preserved++;
+    } else {
+      updates[`${machine}/${uid}`] = false;
+      revoked++;
+    }
+  }
+  try {
+    await update(ref(db), updates);
+    logAudit("group_machine_toggle", groups[gid]?.name, `${label(machine)} ${newVal?'enabled':'disabled'}`);
+    if (newVal) {
+      toast(`Granted ${granted} member${granted!==1?'s':''} on ${label(machine)}`);
+    } else {
+      let msg = `Revoked ${revoked} member${revoked!==1?'s':''} on ${label(machine)}`;
+      if (preserved) msg += ` · ${preserved} still allowed via another group`;
+      toast(msg);
+    }
+  } catch(e) { toast("Error: " + e.message, true); }
+};
+window.addToGroup = async (gid) => {
+  const inp = document.getElementById(`ga-${gid}`);
+  const uid = inp.value.trim().toUpperCase();
+  if (uid.length < 4) { toast("Enter a valid UID", true); return; }
+  try {
+    const machinesOn = Object.keys(groups[gid]?.machines || {}).filter(m => groups[gid].machines[m]);
+    const updates = { [`groups/${gid}/members/${uid}`]: true };
+    machinesOn.forEach(m => { updates[`${m}/${uid}`] = true; });
+    await update(ref(db), updates);
+    logAudit("group_add_member", groups[gid]?.name, uid);
+    toast(`Added ${nameFor(uid)||uid} to group`);
+    inp.value = "";
+  } catch(e) { toast("Error: " + e.message, true); }
+};
+window.removeFromGroup = async (gid, uid) => {
+  try {
+    // Revoke machine access granted by THIS group, but only if no other group still grants it
+    const g = groups[gid];
+    const groupMachines = Object.keys(g?.machines || {}).filter(m => g.machines[m]);
+    const updates = { [`groups/${gid}/members/${uid}`]: null };
+    let revoked = 0, preserved = 0;
+    for (const m of groupMachines) {
+      if (userHasMachineViaOtherGroup(uid, m, gid)) preserved++;
+      else { updates[`${m}/${uid}`] = false; revoked++; }
+    }
+    await update(ref(db), updates);
+    logAudit("group_remove_member", g?.name, uid);
+    let msg = `Removed ${nameFor(uid)||uid} from ${g?.name||'group'}`;
+    if (revoked)   msg += ` · revoked ${revoked} machine${revoked!==1?'s':''}`;
+    if (preserved) msg += ` · ${preserved} preserved via other group${preserved!==1?'s':''}`;
+    toast(msg);
+  } catch(e) { toast("Error: " + e.message, true); }
+};
+// ===== GROUP SCHEDULES =====
+window.toggleGroupSchedule = (gid) => {
+  const editor = document.getElementById(`gs-${gid}`);
+  if (!editor) return;
+  editor.style.display = editor.style.display === "none" ? "block" : "none";
+};
+window.saveGroupSchedule = async (gid) => {
+  const editor = document.getElementById(`gs-${gid}`);
+  if (!editor) return;
+  const enabled = editor.querySelector(".gs-enabled").checked;
+  const days    = [...editor.querySelectorAll(".gs-days input:checked")].map(i => +i.dataset.d);
+  const from    = editor.querySelector(".gs-from").value || "08:00";
+  const to      = editor.querySelector(".gs-to").value   || "15:30";
+  try {
+    await set(ref(db, `groups/${gid}/schedule`), { enabled, days, from, to });
+    logAudit("group_schedule_save", groups[gid]?.name, enabled ? `${from}-${to}` : "disabled");
+    toast(`Schedule saved for ${groups[gid]?.name || 'group'}`);
+  } catch(e) { toast("Error: " + e.message, true); }
+};
+window.clearGroupSchedule = async (gid) => {
+  try {
+    await remove(ref(db, `groups/${gid}/schedule`));
+    logAudit("group_schedule_clear", groups[gid]?.name);
+    toast(`Schedule cleared for ${groups[gid]?.name || 'group'}`);
+  } catch(e) { toast("Error: " + e.message, true); }
+};
+
+// ============ AUDIT LOG ============
+function renderAudit() {
+  const el = document.getElementById("tabContent");
+  let entries = auditEntries;
+  if (auditFilterAction !== "all") {
+    entries = entries.filter(a => (a.action||"").startsWith(auditFilterAction) || (a.action||"").includes(auditFilterAction));
+  }
+  if (auditTimeRange !== "all") {
+    entries = entries.filter(a => {
+      const t = Date.parse(a.ts || "");
+      if (isNaN(t)) return false;
+      const age = Date.now() - t;
+      if (auditTimeRange === "today") return age < 86400000;
+      if (auditTimeRange === "week")  return age < 7  * 86400000;
+      if (auditTimeRange === "month") return age < 30 * 86400000;
+      return true;
+    });
+  }
+  if (auditSearch) {
+    const q = auditSearch.toLowerCase();
+    entries = entries.filter(a =>
+      (a.by||"").toLowerCase().includes(q) ||
+      (a.action||"").toLowerCase().includes(q) ||
+      (a.target||"").toLowerCase().includes(q) ||
+      (a.detail||"").toLowerCase().includes(q)
+    );
+  }
+  entries = entries.slice(0, 200);
+  if (!entries.length) {
+    const note = (auditFilterAction!=="all" || auditTimeRange!=="all" || auditSearch)
+      ? "No entries match the current filters."
+      : "No audit entries yet — actions on this dashboard are logged here.";
+    el.innerHTML = `<div class="audit-empty">${note}</div>`;
+    return;
+  }
+
+  el.innerHTML = `<table class="log-table">
+    <thead><tr><th>When</th><th>Who</th><th>Action</th><th>Target</th><th>Detail</th></tr></thead>
+    <tbody>${entries.map(a => `<tr>
+      <td><div class="log-time">${escHTML(a.ts||"—")}</div><div class="log-time-rel">${relTime(a.ts)}</div></td>
+      <td>${escHTML(a.by||"?")}</td>
+      <td><span class="badge ${a.action&&a.action.includes('delete')||a.action==='set_emergency'?'badge-denied':'badge-granted'}">${escHTML((a.action||"").replace(/_/g,' '))}</span></td>
+      <td style="font-family:var(--mono);font-size:11px">${escHTML(a.target||"")}</td>
+      <td style="font-family:var(--mono);font-size:11px;color:var(--muted)">${escHTML(a.detail||"")}</td>
+    </tr>`).join("")}</tbody>
+  </table>`;
+}
+
+// ============ STATS ============
+function updateStats() {
+  // Count UNIQUE students across all machines (a student on 3 machines = 1 student)
+  const allStudents     = new Set();
+  const grantedStudents = new Set();
+  MACHINES.forEach(m => Object.entries(uids[m]||{}).forEach(([uid, v]) => {
+    allStudents.add(uid);
+    if (v) grantedStudents.add(uid);
+  }));
+  const total   = allStudents.size;
+  const granted = grantedStudents.size;
+  const denied = logs.filter(s => s.result !== "GRANTED").length;
+  const todayCount = logs.filter(s => inTimeRangeAbs(s.timestamp, 86400000)).length;
+  document.getElementById("statTotal").textContent      = total   || "—";
+  document.getElementById("statGranted").textContent    = granted || "—";
+  document.getElementById("statScans").textContent      = logs.length || "—";
+  document.getElementById("statDenied").textContent     = denied || "—";
+  document.getElementById("statTotalSub").textContent   = `across ${MACHINES.length} machines`;
+  document.getElementById("statGrantedSub").textContent = total ? `${Math.round(granted/total*100)}% of students` : "";
+  document.getElementById("statDeniedSub").textContent  = logs.length ? `${Math.round(denied/logs.length*100)}% of scans` : "";
+  document.getElementById("statScansSub").textContent   = `${todayCount} today`;
+}
+function inTimeRangeAbs(ts, ms) {
+  const t = Date.parse(ts); if (isNaN(t)) return false;
+  return (Date.now() - t) < ms;
+}
+
+// ============ TOGGLE / ADD / DELETE UID ============
+window.toggleUID = async (machine, uid, value) => {
+  // Training gate: can't GRANT access unless cleared for THIS machine (approved or override)
+  if (value && !isTrainingClearedFor(uid, machine)) {
+    // revert the checkbox visually
+    renderMachines();
+    const ok = confirm(`${nameFor(uid)||uid} has not completed OnGuard training for ${label(machine)}.\n\nGrant access anyway by setting a teacher OVERRIDE for this machine? (This is logged.)`);
+    if (!ok) { toast(`Access blocked — no approved training for ${label(machine)}`, true); return; }
+    try {
+      await set(ref(db, `trainingOverride/${uid}/${machine}`), true);
+      await set(ref(db, `${machine}/${uid}`), true);
+      logAudit("training_override_on", nameFor(uid)||uid, `granted ${label(machine)} via override`);
+      toast(`Override set — ${nameFor(uid)||uid} granted on ${label(machine)}`);
+    } catch(e) { toast("Error: "+e.message, true); }
+    return;
+  }
+  try {
+    await set(ref(db, `${machine}/${uid}`), value);
+    logAudit(value?"grant_access":"revoke_access", `${nameFor(uid)||uid}`, `on ${label(machine)}`);
+    toast(`${nameFor(uid)||uid} → ${value?"access granted":"access revoked"} on ${label(machine)}`);
+  } catch(e) { toast("Error: "+e.message, true); }
+};
+window.addUID = async (machine) => {
+  const uidInp  = document.getElementById(`inp-uid-${machine}`);
+  const nameInp = document.getElementById(`inp-name-${machine}`);
+  const uid     = uidInp.value.trim().toUpperCase();
+  const name    = nameInp.value.trim();
+  if (uid.length < 4)                     { toast("Enter a valid UID (min 4 chars)", true); return; }
+  if (uids[machine]?.[uid] !== undefined) { toast("UID already exists on this machine", true); return; }
+  try {
+    await set(ref(db, `${machine}/${uid}`), true);
+    if (name) await set(ref(db, `names/${uid}`), name);
+    if (dismissedPending[uid]) await remove(ref(db, `dismissedPending/${uid}`));
+    logAudit("add_user", `${name||uid}`, `to ${label(machine)}`);
+    uidInp.value = ""; nameInp.value = "";
+    toast(`Added ${name||uid} to ${label(machine)}`);
+  } catch(e) { toast("Error: "+e.message, true); }
+};
+window.quickAdd = async () => {
+  const uidInp  = document.getElementById("qa-uid");
+  const nameInp = document.getElementById("qa-name");
+  const uid     = uidInp.value.trim().toUpperCase();
+  const name    = nameInp.value.trim();
+  const picks   = [...document.querySelectorAll("#qaMachinePick input:checked")].map(i => i.dataset.m);
+  if (uid.length < 4) { toast("Enter a valid UID (min 4 chars)", true); return; }
+  if (!picks.length)  { toast("Select at least one machine", true); return; }
+  try {
+    const targets = picks.filter(m => uids[m]?.[uid] === undefined);
+    const skipped = picks.length - targets.length;
+    if (!targets.length) { toast("UID already exists on selected machines", true); return; }
+    await Promise.all(targets.map(m => set(ref(db, `${m}/${uid}`), true)));
+    if (name) await set(ref(db, `names/${uid}`), name);
+    if (dismissedPending[uid]) await remove(ref(db, `dismissedPending/${uid}`));
+    logAudit("add_user", `${name||uid}`, `to ${targets.map(label).join(", ")}`);
+    uidInp.value = ""; nameInp.value = "";
+    toast(`Added ${name||uid} to ${targets.map(label).join(", ")}${skipped?` (skipped ${skipped} duplicate)`:""}`);
+  } catch(e) { toast("Error: "+e.message, true); }
+};
+
+// ============ INLINE NAME EDIT ============
+window.editUserName = (uid, el) => {
+  if (el.querySelector("input")) return;
+  const original = nameFor(uid) || "";
+  el.innerHTML = `<input class="uid-person-input" type="text" value="${escAttr(original)}" placeholder="Name (blank to clear)">`;
+  const input = el.querySelector("input"); input.focus(); input.select();
+  let saved = false;
+  const save = async () => {
+    if (saved) return; saved = true;
+    const newName = input.value.trim();
+    try {
+      if (newName && newName !== original) {
+        await set(ref(db, `names/${uid}`), newName);
+        logAudit("rename_user", uid, `${original||"(unnamed)"} → ${newName}`);
+        toast(`Updated name to ${newName}`);
+      } else if (!newName && original) {
+        await remove(ref(db, `names/${uid}`));
+        logAudit("rename_user", uid, `${original} → (cleared)`);
+        toast(`Cleared name for ${uid}`);
+      }
+    } catch(e) { toast("Error: "+e.message, true); }
+  };
+  input.addEventListener("blur", save);
+  input.addEventListener("keydown", e => {
+    if (e.key === "Enter")  { e.preventDefault(); input.blur(); }
+    if (e.key === "Escape") { saved = true; renderMachines(); }
+  });
+};
+window.editMachineName = (machine, el) => {
+  if (el.querySelector("input")) return;
+  const original = label(machine);
+  el.innerHTML = `<input class="machine-name-input" type="text" value="${escAttr(original)}" maxlength="24">`;
+  const input = el.querySelector("input"); input.focus(); input.select();
+  let saved = false;
+  const save = async () => {
+    if (saved) return; saved = true;
+    const newLabel = input.value.trim();
+    try {
+      if (newLabel && newLabel !== DEFAULT_LABELS[machine]) {
+        await set(ref(db, `machineNames/${machine}`), newLabel);
+        logAudit("rename_machine", machine, `${original} → ${newLabel}`);
+        toast(`Renamed to ${newLabel}`);
+      } else {
+        await remove(ref(db, `machineNames/${machine}`));
+        logAudit("rename_machine", machine, `reset to default`);
+        toast(`Reset to ${DEFAULT_LABELS[machine]}`);
+      }
+    } catch(e) { toast("Error: "+e.message, true); }
+  };
+  input.addEventListener("blur", save);
+  input.addEventListener("keydown", e => { if (e.key==="Enter"){e.preventDefault();input.blur();} if (e.key==="Escape"){saved=true;renderMachines();} });
+};
+
+// ============ DELETE / CLEAR MODALS ============
+window.openModal = (machine, uid) => {
+  pendingDel = { machine, uid };
+  const person = nameFor(uid);
+  document.getElementById("modalName").textContent    = person || "";
+  document.getElementById("modalUID").textContent     = uid;
+  document.getElementById("modalName").style.display  = person ? "" : "none";
+  // Build radio options — default to safer "this machine only"
+  const otherMachines = MACHINES.filter(m => m !== machine && uids[m] && (uid in uids[m]));
+  const grps = findUserGroups(uid);
+  const cascadeBits = [];
+  if (otherMachines.length) cascadeBits.push(`also on ${otherMachines.map(label).join(", ")}`);
+  if (grps.length) cascadeBits.push(`member of ${grps.join(", ")}`);
+  const cascadeNote = cascadeBits.length ? ` (${cascadeBits.join(" · ")})` : "";
+  document.getElementById("deleteOpts").innerHTML = `
+    <label class="clear-opt"><input type="radio" name="deleteOpt" value="this" checked>
+      <div><div class="clear-opt-label">Remove from ${escHTML(label(machine))} only</div>
+      <div class="clear-opt-sub">Revokes access on this machine; keeps name, notes, inductions, group memberships</div></div></label>
+    <label class="clear-opt"><input type="radio" name="deleteOpt" value="full">
+      <div><div class="clear-opt-label">Delete user entirely</div>
+      <div class="clear-opt-sub">Removes from ALL machines, names, notes, inductions, supervisor flag, schedule, and groups${escHTML(cascadeNote)}</div></div></label>`;
+  document.getElementById("deleteModal").classList.add("open");
+};
+window.closeModal = () => { pendingDel = null; document.getElementById("deleteModal").classList.remove("open"); };
+window.confirmDelete = async () => {
+  if (!pendingDel) return;
+  const { machine, uid } = pendingDel;
+  const mode = (document.querySelector('input[name="deleteOpt"]:checked')||{}).value || "this";
+  const person = nameFor(uid) || uid;
+  try {
+    if (mode === "this") {
+      await remove(ref(db, `${machine}/${uid}`));
+      logAudit("delete_user_machine", person, `from ${label(machine)}`);
+      toast(`Removed ${person} from ${label(machine)}`);
+    } else {
+      // Cascade: clear from every machine + aux paths + group memberships
+      const machinesHit = MACHINES.filter(m => uids[m] && (uid in uids[m]));
+      const groupsHit = [];
+      const ops = {};
+      MACHINES.forEach(m => { ops[`${m}/${uid}`] = null; });
+      ops[`names/${uid}`]       = null;
+      ops[`notes/${uid}`]       = null;
+      ops[`inductions/${uid}`]  = null;
+      ops[`supervisors/${uid}`] = null;
+      ops[`schedule/${uid}`]    = null;
+      for (const gid in groups) {
+        if (groups[gid]?.members?.[uid]) {
+          ops[`groups/${gid}/members/${uid}`] = null;
+          groupsHit.push(groups[gid].name || gid);
+        }
+      }
+      await update(ref(db), ops);
+      const detail = `machines: ${machinesHit.length?machinesHit.map(label).join(","):"none"}; groups: ${groupsHit.length?groupsHit.join(","):"none"}; cleared name/notes/inductions/supervisor/schedule`;
+      logAudit("delete_user_full", person, detail);
+      toast(`Deleted ${person} entirely`);
+    }
+  } catch(e) { toast("Error: "+e.message, true); }
+  closeModal();
+};
+document.getElementById("deleteModal").addEventListener("click", e => { if (e.target.id === "deleteModal") closeModal(); });
+
+window.openClearModal = () => {
+  document.querySelector('input[name="clearOpt"][value="all"]').checked = true;
+  document.getElementById("clearModal").classList.add("open");
+};
+window.closeClearModal = () => document.getElementById("clearModal").classList.remove("open");
+window.confirmClearLogs = async () => {
+  const selected = document.querySelector('input[name="clearOpt"]:checked').value;
+  try {
+    if (selected === "all") {
+      await remove(ref(db, "logs"));
+      logAudit("clear_logs", "all");
+      toast("All logs cleared");
+    } else {
+      const toDelete = logs.filter(s => s.machine === selected);
+      if (!toDelete.length) { toast("No logs found for " + label(selected), true); closeClearModal(); return; }
+      await Promise.all(toDelete.map(s => remove(ref(db, `logs/${s.key}`))));
+      logAudit("clear_logs", selected, `${toDelete.length} entries`);
+      toast(`Cleared ${toDelete.length} log${toDelete.length!==1?"s":""} for ${label(selected)}`);
+    }
+  } catch(e) { toast("Error: " + e.message, true); }
+  closeClearModal();
+};
+document.getElementById("clearModal").addEventListener("click", e => { if (e.target.id === "clearModal") closeClearModal(); });
+
+// ============ MAINTENANCE / TWO-PERSON ============
+window.toggleMaintenance = async (machine) => {
+  const cur = !!maintenance[machine];
+  try {
+    if (cur) {
+      await remove(ref(db, `maintenance/${machine}`));
+      logAudit("clear_maintenance", label(machine));
+      toast(`${label(machine)} maintenance cleared`);
+    } else {
+      await set(ref(db, `maintenance/${machine}`), { by: who(), since: new Date().toISOString() });
+      logAudit("set_maintenance", label(machine));
+      toast(`${label(machine)} marked under maintenance`);
+    }
+  } catch(e) { toast("Error: "+e.message, true); }
+};
+window.toggleTwoPerson = async (machine) => {
+  const cur = !!twoPerson[machine];
+  try {
+    if (cur) {
+      await remove(ref(db, `twoPerson/${machine}`));
+      logAudit("clear_twoperson", label(machine));
+      toast(`${label(machine)} no longer requires supervisor card`);
+    } else {
+      await set(ref(db, `twoPerson/${machine}`), true);
+      logAudit("set_twoperson", label(machine));
+      toast(`${label(machine)} now requires supervisor card`);
+    }
+  } catch(e) { toast("Error: "+e.message, true); }
+};
+
+// ============ CSV EXPORT ============
+window.exportCSV = () => {
+  const rows = filteredLogs();
+  if (!rows.length) { toast("No logs to export with current filters", true); return; }
+  const esc = v => `"${String(v ?? "").replace(/"/g,'""')}"`;
+  const header = ["UID","Name","Machine","Result","Timestamp"];
+  const lines = [header.join(",")];
+  rows.forEach(s => lines.push([s.uid, names[s.uid] || "", label(s.machine), s.result, s.timestamp].map(esc).join(",")));
+  downloadFile(`access-log-${new Date().toISOString().slice(0,10)}.csv`, lines.join("\n"), "text/csv;charset=utf-8");
+  toast(`Exported ${rows.length} log${rows.length!==1?"s":""}`);
+};
+
+function downloadFile(name, content, type) {
+  const blob = new Blob([content], { type });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement("a");
+  a.href = url; a.download = name; document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// ============ TABS / FILTERS / SORT / SEARCH ============
+window.switchTab = (tab, btn) => {
+  activeTab = tab;
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  renderTab();
+};
+window.setFilter = (filter, btn) => {
+  logFilter = filter;
+  document.querySelectorAll("#filterRow_main .filter-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  renderTab();
+};
+window.setRange = (range, btn) => {
+  timeRange = range;
+  btn.parentElement.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  renderTab();
+};
+window.setSort = (field) => {
+  if (sortField === field) sortDir = sortDir === "asc" ? "desc" : "asc";
+  else { sortField = field; sortDir = "desc"; }
+  renderTab();
+};
+window.setAuditFilter = (a, btn) => {
+  auditFilterAction = a;
+  btn.parentElement.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  renderAudit();
+};
+window.setAuditRange = (range, btn) => {
+  auditTimeRange = range;
+  btn.parentElement.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  renderAudit();
+};
+window.setAuditSearch = (v) => { auditSearch = (v || "").trim(); renderAudit(); };
+window.onSearchInput = (v) => { searchQuery = v.trim(); renderMachines(); renderTab(); };
+
+// ============ SOUND ============
+window.toggleSound = () => {
+  soundEnabled = !soundEnabled;
+  const btn = document.getElementById("soundBtn");
+  const lbl = document.getElementById("soundLabel");
+  btn.classList.toggle("on", soundEnabled);
+  lbl.textContent = soundEnabled ? "On" : "Off";
+  localStorage.setItem("ac_sound", soundEnabled ? "1" : "0");
+  if (soundEnabled) beep();
+};
+
+// ============ TOAST ============
+let tt;
+window.toast = (msg, isError = false) => {
+  const el = document.getElementById("toast");
+  el.textContent       = msg;
+  el.style.borderColor = isError ? "var(--red)" : "var(--border2)";
+  el.style.color       = isError ? "var(--red)" : "var(--text)";
+  el.classList.add("show");
+  clearTimeout(tt); tt = setTimeout(() => el.classList.remove("show"), 3000);
+};
+
+// ============ USER DETAIL MODAL ============
+window.openUserDetail = (uid) => {
+  const person = nameFor(uid) || "";
+  const note   = notesMap[uid] || "";
+  const userInd = inductions[uid] || {};
+  const accessOn = MACHINES.filter(m => uids[m]?.[uid] === true);
+  const accessOff = MACHINES.filter(m => uids[m]?.[uid] === false);
+
+  document.getElementById("userModalBody").innerHTML = `
+    <div class="modal-title">User Details</div>
+    <div class="ud-head">
+      ${avatarHTML(uid, person, { lg: true, noClick: true })}
+      <div class="ud-info">
+        <div class="ud-name">${escHTML(person || "(unnamed)")}</div>
+        <div class="ud-uid">${escHTML(uid)}</div>
+      </div>
+    </div>
+
+    <div class="ud-section">
+      <div class="ud-section-title">Display name</div>
+      <input class="input-name" id="ud-name" value="${escAttr(person)}" placeholder="Person's name" style="width:100%;padding:8px 10px;font-size:13px">
+    </div>
+
+    <div class="ud-section">
+      <div class="ud-section-title">Role</div>
+      <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border2);border-radius:6px;cursor:pointer;transition:border-color .15s" id="ud-sup-wrap">
+        <input type="checkbox" id="ud-sup" ${supervisors[uid] ? "checked" : ""} style="accent-color:var(--amber);width:16px;height:16px;cursor:pointer">
+        <div style="flex:1">
+          <div style="font-family:var(--mono);font-size:12px;color:var(--text);font-weight:500">★ Supervisor card</div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:2px">Required to authorise access on machines with the two-person rule (👥) enabled</div>
+        </div>
+      </label>
+    </div>
+
+    <div class="ud-section">
+      <div class="ud-section-title">Notes (visible only on dashboard)</div>
+      <textarea class="ud-notes" id="ud-notes" placeholder="e.g. Card confiscated 2026-03-12 — see Mr. K">${escHTML(note)}</textarea>
+    </div>
+
+    <div class="ud-section">
+      <div class="ud-section-title">OnGuard training — per machine</div>
+      ${MACHINES.map(m => {
+        const t = (training[uid] && training[uid][m]) || {};
+        const st = t.status || "none";
+        const stTxt = { none:"Not submitted", pending:"Pending", approved:"Approved", denied:"Denied" }[st];
+        const ovr = trainingOverride[uid]?.[m] === true;
+        return `<div class="ud-train-row">
+          <div class="ud-train-name">${escHTML(label(m))}</div>
+          <span class="training-badge ${st==='none'?'denied':st}" style="${st==='none'?'opacity:.6':''}">${stTxt}</span>
+          ${st!=="none" ? `<button class="t-btn view" onclick="viewCert('${escAttr(uid)}','${m}')">View</button>` : ``}
+          ${st!=="approved" ? `<button class="t-btn approve" onclick="approveTraining('${escAttr(uid)}','${m}')">Approve</button>` : `<button class="t-btn deny" onclick="revokeTraining('${escAttr(uid)}','${m}')">Revoke</button>`}
+          <label class="ud-train-ovr"><input type="checkbox" ${ovr?"checked":""} onchange="toggleTrainingOverride('${escAttr(uid)}','${m}')">override</label>
+        </div>`;
+      }).join("")}
+    </div>
+
+    <div class="ud-section">
+      <div class="ud-section-title">Machine access</div>
+      <div class="ud-access-grid">
+        ${MACHINES.map(m => {
+          const v = uids[m]?.[uid];
+          const cls = v === true ? "on" : "";
+          const txt = v === true ? "✓ Authorised" : v === false ? "Revoked" : "Not added";
+          return `<span class="ud-access-pill ${cls}">${escHTML(label(m))}: ${txt}</span>`;
+        }).join("")}
+      </div>
+    </div>
+
+    <div class="ud-section">
+      <div class="ud-section-title">Groups</div>
+      <div class="ud-access-grid">
+        ${(() => {
+          const gs = findUserGroups(uid);
+          return gs.length
+            ? gs.map(g => `<span class="ud-access-pill on">${escHTML(g)}</span>`).join("")
+            : `<span class="ud-access-pill">Not in any group</span>`;
+        })()}
+      </div>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:6px">Manage memberships from the Groups tab. A user can belong to more than one group.</div>
+    </div>
+
+    <div class="ud-section">
+      <div class="ud-section-title">Inductions</div>
+      ${MACHINES.map(m => {
+        const rec = userInd[m] || {};
+        const checked = rec.date ? "checked" : "";
+        return `<div class="ud-induction-row" data-m="${m}">
+          <input type="checkbox" ${checked} class="ud-ind-check">
+          <span class="ud-induction-label">${escHTML(label(m))}</span>
+          <input type="date" class="ud-ind-date" value="${escAttr(rec.date||"")}">
+          <input type="text" class="ud-ind-by" value="${escAttr(rec.by||"")}" placeholder="Inducted by...">
+        </div>`;
+      }).join("")}
+    </div>
+
+    <div class="ud-bottom-actions">
+      <button class="btn-cancel" onclick="closeUserModal()">Close</button>
+      <button class="icon-btn" onclick="generateIDCard('${uid}')">🪪 Generate ID Card</button>
+      <button class="btn-confirm" onclick="saveUserDetail('${uid}')">Save Changes</button>
+    </div>
+  `;
+  document.getElementById("userModal").classList.add("open");
+};
+window.closeUserModal = () => document.getElementById("userModal").classList.remove("open");
+document.getElementById("userModal").addEventListener("click", e => { if (e.target.id === "userModal") closeUserModal(); });
+
+window.saveUserDetail = async (uid) => {
+  const newName = document.getElementById("ud-name").value.trim();
+  const newNote = document.getElementById("ud-notes").value;
+  const newSup  = document.getElementById("ud-sup").checked;
+  const origName = nameFor(uid) || "";
+  const origSup  = !!supervisors[uid];
+
+  try {
+    // Save name
+    if (newName !== origName) {
+      if (newName) await set(ref(db, `names/${uid}`), newName);
+      else         await remove(ref(db, `names/${uid}`));
+      logAudit("rename_user", uid, `${origName||"(unnamed)"} → ${newName||"(cleared)"}`);
+    }
+    // Save supervisor status
+    if (newSup !== origSup) {
+      if (newSup) await set(ref(db, `supervisors/${uid}`), true);
+      else         await remove(ref(db, `supervisors/${uid}`));
+      logAudit(newSup?"set_supervisor":"clear_supervisor", `${newName||uid}`);
+    }
+    // Save note
+    if (newNote.trim()) await set(ref(db, `notes/${uid}`), newNote);
+    else                 await remove(ref(db, `notes/${uid}`));
+
+    // Save inductions
+    const indsOut = {};
+    document.querySelectorAll(".ud-induction-row").forEach(row => {
+      const m       = row.dataset.m;
+      const checked = row.querySelector(".ud-ind-check").checked;
+      const date    = row.querySelector(".ud-ind-date").value;
+      const by      = row.querySelector(".ud-ind-by").value.trim();
+      if (checked && date) indsOut[m] = { date, by: by || who() };
+    });
+    if (Object.keys(indsOut).length) await set(ref(db, `inductions/${uid}`), indsOut);
+    else                              await remove(ref(db, `inductions/${uid}`));
+
+    logAudit("induction_update", uid, Object.keys(indsOut).map(m => label(m)).join(", ") || "(cleared)");
+    toast("Saved user details");
+  } catch(e) { toast("Error: "+e.message, true); }
+
+  closeUserModal();
+};
+
+// ============ ID CARD GENERATOR ============
+window.generateIDCard = (uid) => {
+  const person = nameFor(uid) || "Unnamed";
+  const userInd = inductions[uid] || {};
+  const accessOn = MACHINES.filter(m => uids[m]?.[uid] === true);
+
+  // Generate QR code SVG via qrcode-generator
+  let qrSVG = "";
+  try {
+    const qr = qrcode(0, "M");
+    qr.addData(uid);
+    qr.make();
+    qrSVG = qr.createSvgTag({ scalable: true, margin: 2 });
+  } catch(e) { qrSVG = `<div style="font-family:monospace;font-size:18px">${uid}</div>`; }
+
+  // Open a print window
+  const w = window.open("", "_blank", "width=600,height=820");
+  if (!w) { toast("Allow pop-ups to generate ID cards", true); return; }
+  let h = 0;
+  for (let i = 0; i < uid.length; i++) h = (h*31 + uid.charCodeAt(i)) % 360;
+  const initials = person.trim().split(/\s+/).map(w => w[0]).slice(0,2).join("").toUpperCase();
+
+  w.document.write(`<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>ID Card — ${escHTML(person)}</title>
+<style>
+  body{font-family:-apple-system,sans-serif;background:#e0e4ec;margin:0;padding:40px;display:flex;flex-direction:column;align-items:center;gap:24px}
+  .card{width:340px;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 6px 30px rgba(0,0,0,.15)}
+  .card-head{background:linear-gradient(135deg,#0a0c0f,#1a2030);color:#fff;padding:16px 20px;display:flex;align-items:center;gap:10px}
+  .card-head-icon{width:28px;height:28px;border:1.5px solid #00d4ff;border-radius:4px;display:flex;align-items:center;justify-content:center}
+  .card-head-icon::after{content:'';width:10px;height:10px;border:1.5px solid #00d4ff;border-radius:50%}
+  .card-head-text{font-family:'Courier New',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:600}
+  .card-body{padding:24px 20px;display:flex;flex-direction:column;align-items:center;gap:14px}
+  .avatar-big{width:80px;height:80px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Courier New',monospace;font-size:28px;font-weight:600;background:hsl(${h},45%,90%);color:hsl(${h},60%,30%);border:2px solid hsl(${h},50%,55%)}
+  .name{font-size:22px;font-weight:600;color:#1a2030;margin:4px 0 0}
+  .uid{font-family:'Courier New',monospace;font-size:12px;color:#6b7588;letter-spacing:.06em}
+  .qr{width:140px;height:140px;margin:8px 0}
+  .qr svg{width:100%;height:100%}
+  .access{width:100%;border-top:1px solid #eaedf2;padding-top:14px;text-align:center}
+  .access-label{font-family:'Courier New',monospace;font-size:10px;color:#6b7588;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+  .access-list{font-size:11px;color:#1a2030;line-height:1.5}
+  .footer{padding:10px 20px;background:#f5f7fb;font-family:'Courier New',monospace;font-size:9px;color:#6b7588;text-align:center;letter-spacing:.06em;text-transform:uppercase}
+  .actions{display:flex;gap:8px}
+  button{padding:8px 16px;background:#0088b8;color:#fff;border:none;border-radius:6px;font-family:inherit;font-size:13px;cursor:pointer}
+  button.alt{background:#6b7588}
+  @media print { body{background:#fff;padding:20px} .actions{display:none} }
+</style></head>
+<body>
+  <div class="card">
+    <div class="card-head">
+      <div class="card-head-icon"></div>
+      <div class="card-head-text">Workshop Access ID</div>
+    </div>
+    <div class="card-body">
+      <div class="avatar-big">${escHTML(initials || "??")}</div>
+      <div style="text-align:center">
+        <div class="name">${escHTML(person)}</div>
+        <div class="uid">${escHTML(uid)}</div>
+      </div>
+      <div class="qr">${qrSVG}</div>
+      <div class="access">
+        <div class="access-label">Authorised Machines</div>
+        <div class="access-list">${accessOn.length ? accessOn.map(m => escHTML(label(m))).join(" · ") : "—"}</div>
+      </div>
+    </div>
+    <div class="footer">Issued ${new Date().toLocaleDateString()} · Georges River Grammar</div>
+  </div>
+  <div class="actions">
+    <button onclick="window.print()">🖨 Print</button>
+    <button class="alt" onclick="window.close()">Close</button>
+  </div>
+</body></html>`);
+  w.document.close();
+};
+
+// ============ SCHEDULE MODAL ============
+window.openSchedule = () => {
+  closeDropdown();
+  const global = schedules.global || { enabled: false, days: [1,2,3,4,5], from: "08:00", to: "15:30" };
+  const overrides = Object.keys(schedules).filter(k => k !== "global");
+
+  const dayName = ["S","M","T","W","T","F","S"];
+
+  document.getElementById("scheduleModalBody").innerHTML = `
+    <div class="modal-title">Workshop Schedules</div>
+    <div class="modal-body" style="margin-bottom:16px">Schedules apply on the ESP32 side — set windows when access is permitted. Leave disabled for 24/7 access.</div>
+
+    <div class="ud-section">
+      <div class="ud-section-title">Global schedule (applies to everyone unless overridden)</div>
+      <div class="sched-row">
+        <label style="display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:12px">
+          <input type="checkbox" id="sched-g-enabled" ${global.enabled?"checked":""} style="accent-color:var(--accent);width:14px;height:14px">
+          <span>Enabled</span>
+        </label>
+        <div class="sched-days" id="sched-g-days">
+          ${dayName.map((d,i) => `<label><input type="checkbox" data-d="${i}" ${(global.days||[]).includes(i)?"checked":""}><span>${d}</span></label>`).join("")}
+        </div>
+        <div class="sched-time-pair">
+          <span class="sched-label-mini">From</span>
+          <input type="time" class="sched-time-input" id="sched-g-from" value="${escAttr(global.from||"08:00")}">
+        </div>
+        <div class="sched-time-pair">
+          <span class="sched-label-mini">To</span>
+          <input type="time" class="sched-time-input" id="sched-g-to" value="${escAttr(global.to||"15:30")}">
+        </div>
+      </div>
+    </div>
+
+    <div class="ud-section">
+      <div class="ud-section-title">Per-user overrides (${overrides.length})</div>
+      ${overrides.length ? overrides.map(uid => {
+        const s = schedules[uid] || {};
+        return `<div class="sched-row" data-uid="${uid}">
+          <div class="sched-name">${escHTML(nameFor(uid)||uid)}</div>
+          <label style="display:flex;align-items:center;gap:4px;font-family:var(--mono);font-size:11px;color:var(--muted)"><input type="checkbox" class="ov-enabled" ${s.enabled?"checked":""} style="accent-color:var(--accent)"><span>On</span></label>
+          <div class="sched-days ov-days">
+            ${dayName.map((d,i) => `<label><input type="checkbox" data-d="${i}" ${(s.days||[]).includes(i)?"checked":""}><span>${d}</span></label>`).join("")}
+          </div>
+          <div class="sched-time-pair"><span class="sched-label-mini">From</span><input type="time" class="sched-time-input ov-from" value="${escAttr(s.from||"08:00")}"></div>
+          <div class="sched-time-pair"><span class="sched-label-mini">To</span><input type="time" class="sched-time-input ov-to" value="${escAttr(s.to||"15:30")}"></div>
+          <button class="group-delete" onclick="removeOverride('${uid}')">×</button>
+        </div>`;
+      }).join("") : `<div class="sched-label-mini" style="text-align:center;padding:14px">No per-user overrides set.</div>`}
+    </div>
+
+    <div class="ud-section">
+      <div class="ud-section-title">Add override for user</div>
+      <div class="sched-row">
+        <input type="text" id="sched-new-uid" placeholder="UID" class="sched-time-input" style="text-transform:uppercase;width:120px">
+        <button class="btn-add" onclick="addOverride()">+ Add Override</button>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeSchedule()">Close</button>
+      <button class="btn-confirm" onclick="saveSchedule()">Save Schedules</button>
+    </div>
+  `;
+  document.getElementById("scheduleModal").classList.add("open");
+};
+window.closeSchedule = () => document.getElementById("scheduleModal").classList.remove("open");
+document.getElementById("scheduleModal").addEventListener("click", e => { if (e.target.id === "scheduleModal") closeSchedule(); });
+
+window.removeOverride = async (uid) => {
+  await remove(ref(db, `schedule/${uid}`));
+  logAudit("schedule_remove", uid);
+  openSchedule();
+};
+window.addOverride = async () => {
+  const uid = document.getElementById("sched-new-uid").value.trim().toUpperCase();
+  if (uid.length < 4) { toast("Enter a UID", true); return; }
+  await set(ref(db, `schedule/${uid}`), { enabled: true, days: [1,2,3,4,5], from: "08:00", to: "15:30" });
+  logAudit("schedule_add", uid);
+  openSchedule();
+};
+window.saveSchedule = async () => {
+  const collect = (root, daysSel) => {
+    const days = [...root.querySelectorAll(daysSel + " input:checked")].map(i => +i.dataset.d);
+    return days;
+  };
+  const gEnabled = document.getElementById("sched-g-enabled").checked;
+  const gDays    = collect(document, "#sched-g-days");
+  const gFrom    = document.getElementById("sched-g-from").value;
+  const gTo      = document.getElementById("sched-g-to").value;
+  try {
+    if (gEnabled || gDays.length || gFrom !== "08:00" || gTo !== "15:30") {
+      await set(ref(db, "schedule/global"), { enabled: gEnabled, days: gDays, from: gFrom, to: gTo });
+    }
+    // Per-user
+    const rows = document.querySelectorAll("[data-uid]");
+    for (const row of rows) {
+      const uid = row.dataset.uid;
+      const enabled = row.querySelector(".ov-enabled").checked;
+      const days    = [...row.querySelectorAll(".ov-days input:checked")].map(i => +i.dataset.d);
+      const from    = row.querySelector(".ov-from").value;
+      const to      = row.querySelector(".ov-to").value;
+      await set(ref(db, `schedule/${uid}`), { enabled, days, from, to });
+    }
+    logAudit("schedule_save");
+    toast("Schedules saved");
+    closeSchedule();
+  } catch(e) { toast("Error: " + e.message, true); }
+};
+
+function renderScheduleSummary() {
+  const g = schedules.global;
+  const el = document.getElementById("schedSummary");
+  if (!g || !g.enabled) { el.textContent = ""; return; }
+  const dayNames = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  const ds = (g.days||[]).map(i => dayNames[i]).join("/") || "all days";
+  el.textContent = `· Schedule: ${ds} ${g.from||"00:00"}–${g.to||"23:59"}`;
+}
+
+// ============ BACKUP / RESTORE ============
+window.backupData = async () => {
+  closeDropdown();
+  try {
+    const paths = ["machine_1","machine_2","machine_3","names","machineNames","groups","inductions","notes","schedule","maintenance","twoPerson","supervisors","staff","training","trainingCerts","trainingOverride","heartbeat","emergency","audit","logs","dismissedPending"];
+    const out = { _meta: { version: 1, exported: new Date().toISOString(), by: who() } };
+    for (const p of paths) {
+      const snap = await get(ref(db, p));
+      if (snap.exists()) out[p] = snap.val();
+    }
+    downloadFile(`access-control-backup-${new Date().toISOString().slice(0,10)}.json`, JSON.stringify(out, null, 2), "application/json");
+    logAudit("backup");
+    toast("Backup downloaded");
+  } catch(e) { toast("Error: " + e.message, true); }
+};
+
+let pendingRestore = null;
+window.restoreData = (file) => {
+  if (!file) return;
+  closeDropdown();
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      pendingRestore = data;
+      const keys = Object.keys(data).filter(k => k !== "_meta");
+      const meta = data._meta || {};
+      document.getElementById("restorePreview").innerHTML = `
+        Backup contains: <strong>${escHTML(keys.join(", "))}</strong><br>
+        ${meta.exported ? `Exported ${escHTML(meta.exported)}<br>` : ""}
+        ${meta.by ? `By ${escHTML(meta.by)}` : ""}
+      `;
+      document.getElementById("restoreModal").classList.add("open");
+    } catch(err) { toast("Invalid backup file: " + err.message, true); }
+  };
+  reader.readAsText(file);
+  document.getElementById("restoreFile").value = "";
+};
+window.closeRestoreModal = () => { pendingRestore = null; document.getElementById("restoreModal").classList.remove("open"); };
+window.confirmRestore = async () => {
+  if (!pendingRestore) return;
+  try {
+    const data = pendingRestore;
+    const writes = {};
+    Object.keys(data).filter(k => k !== "_meta").forEach(k => { writes[k] = data[k]; });
+    await update(ref(db), writes);
+    logAudit("restore_backup", "", Object.keys(writes).join(", "));
+    toast("Backup restored");
+  } catch(e) { toast("Error: " + e.message, true); }
+  closeRestoreModal();
+};
+
+// ============ COMPLIANCE REPORT ============
+window.openReport = () => {
+  closeDropdown();
+  const w = window.open("", "_blank", "width=860,height=1024");
+  if (!w) { toast("Allow pop-ups to view report", true); return; }
+  const today = new Date().toLocaleDateString();
+  const rows = MACHINES.map(m => {
+    const machineUIDs = uids[m] || {};
+    const authorised = Object.entries(machineUIDs).filter(([,v]) => v).map(([u]) => u);
+    return `<section>
+      <h2>${escHTML(label(m))}</h2>
+      <p class="meta">${authorised.length} authorised user${authorised.length!==1?"s":""}${maintenance[m]?" · <strong style='color:#c87a00'>UNDER MAINTENANCE</strong>":""}${twoPerson[m]?" · Two-person rule":""}</p>
+      ${authorised.length ? `<table>
+        <thead><tr><th>Name</th><th>UID</th><th>Induction Date</th><th>Inducted By</th><th>Signature</th></tr></thead>
+        <tbody>${authorised.map(uid => {
+          const i = (inductions[uid]||{})[m] || {};
+          return `<tr>
+            <td>${escHTML(nameFor(uid)||"(unnamed)")}</td>
+            <td class="mono">${escHTML(uid)}</td>
+            <td class="mono">${escHTML(i.date||"")}</td>
+            <td>${escHTML(i.by||"")}</td>
+            <td class="sig"></td>
+          </tr>`;
+        }).join("")}</tbody></table>` : `<p class="empty">No authorised users.</p>`}
+    </section>`;
+  }).join("");
+
+  w.document.write(`<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>Workshop Access Compliance Report — ${today}</title>
+<style>
+  body{font-family:-apple-system,sans-serif;color:#1a2030;max-width:780px;margin:40px auto;padding:0 30px;line-height:1.5}
+  header{border-bottom:2px solid #1a2030;padding-bottom:14px;margin-bottom:30px;display:flex;justify-content:space-between;align-items:end}
+  h1{font-size:22px;font-weight:600;margin:0 0 4px}
+  .subtitle{font-size:12px;color:#6b7588;text-transform:uppercase;letter-spacing:.08em}
+  .meta-block{font-size:11px;color:#6b7588;font-family:'Courier New',monospace;text-align:right}
+  section{margin-bottom:30px;break-inside:avoid;page-break-inside:avoid}
+  h2{font-size:16px;color:#0088b8;border-bottom:1px solid #dfe4ec;padding-bottom:6px;margin:0 0 8px}
+  .meta{font-size:11px;color:#6b7588;font-family:'Courier New',monospace;margin:0 0 12px}
+  table{width:100%;border-collapse:collapse;font-size:11px}
+  th{text-align:left;font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:#6b7588;border-bottom:1px solid #1a2030;padding:6px 4px}
+  td{padding:8px 4px;border-bottom:1px solid #eaedf2}
+  td.mono{font-family:'Courier New',monospace}
+  td.sig{width:140px;border-bottom:1px solid #1a2030}
+  .empty{font-style:italic;color:#6b7588;font-size:11px;padding:6px 0}
+  footer{margin-top:40px;padding-top:14px;border-top:1px solid #dfe4ec;font-size:10px;color:#6b7588;display:flex;justify-content:space-between}
+  .actions{position:fixed;top:14px;right:14px;display:flex;gap:8px;background:#fff;padding:8px;border-radius:6px;box-shadow:0 2px 12px rgba(0,0,0,.1)}
+  button{padding:6px 14px;background:#0088b8;color:#fff;border:none;border-radius:5px;font-family:inherit;font-size:12px;cursor:pointer}
+  button.alt{background:#6b7588}
+  @media print { .actions{display:none} body{margin:14mm 16mm} }
+</style></head>
+<body>
+  <div class="actions">
+    <button onclick="window.print()">🖨 Print / Save PDF</button>
+    <button class="alt" onclick="window.close()">Close</button>
+  </div>
+  <header>
+    <div>
+      <h1>Workshop Access Compliance Report</h1>
+      <div class="subtitle">Authorised users by machine — RFID Access Control System</div>
+    </div>
+    <div class="meta-block">
+      Generated ${today}<br>
+      By ${escHTML(who())}
+    </div>
+  </header>
+  ${rows}
+  <footer>
+    <div>Workshop Access Control · Georges River Grammar</div>
+    <div>Page <span class="pageNum"></span></div>
+  </footer>
+</body></html>`);
+  w.document.close();
+  logAudit("report_generated");
+};
+
+// ============ INIT ============
+applyTheme(localStorage.getItem("ac_theme") || "dark");
+soundEnabled = localStorage.getItem("ac_sound") === "1";
+document.getElementById("soundBtn").classList.toggle("on", soundEnabled);
+document.getElementById("soundLabel").textContent = soundEnabled ? "On" : "Off";
+
+// Auth gate — shows login overlay unless a valid session exists
+applySession();
+
+renderQuickAddPick();
+renderClearOpts();
+renderBottomActions();
+renderFilters();
+renderMachines();
+renderTab();
+updateStats();
+updateTrainingBadge();
+</script>
+</body>
+</html>
